@@ -989,6 +989,7 @@ addKeybind("Bind",         function() return DS.TelekinesisBind    end, function
 addSlider("Force",         10, 200, 5,    function() return DS.TelekinesisForce   end, function(v) DS.TelekinesisForce   = v end, stud)
 
 section("Misc")
+addToggle("Infinite Ammo", function() return DS.InfiniteAmmoEnabled end, function(v) DS.InfiniteAmmoEnabled = v end)
 addToggle("No Ragdoll",    function() return DS.NoRagdollEnabled   end, function(v) DS.NoRagdollEnabled   = v end)
 addKeybind("No Ragdoll Bind",  function() return DS.NoRagdollBind  end, function(v) DS.NoRagdollBind      = v end)
 addToggle("Auto Revive",   function() return DS.AutoReviveEnabled  end, function(v) DS.AutoReviveEnabled  = v end)
