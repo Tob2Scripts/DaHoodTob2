@@ -1,0 +1,894 @@
+-- /Tob2 Da Hood Edition — paste into Xeno as: loadstring(game:HttpGet("RAW_URL"))()
+local Players=game:GetService("Players")
+local TweenService=game:GetService("TweenService")
+local UserInputService=game:GetService("UserInputService")
+local RunService=game:GetService("RunService")
+local Workspace=game:GetService("Workspace")
+local HttpService=game:GetService("HttpService")
+local player=Players.LocalPlayer
+local playerGui=player:WaitForChild("PlayerGui")
+local VU=pcall(function()return game:GetService("VirtualUser")end)and game:GetService("VirtualUser")or nil
+local AUTOLOAD_CONFIG=""
+local MenuSettings={Bind=Enum.KeyCode.RightShift}
+local function inputMatches(input,bind)
+	if not bind then return false end
+	if bind.EnumType==Enum.KeyCode then return input.KeyCode==bind end
+	return input.UserInputType==bind
+end
+local function getChar()
+	local c=player.Character
+	return c,c and c:FindFirstChildOfClass("Humanoid"),c and c:FindFirstChild("HumanoidRootPart")
+end
+local function clickMouse()
+	if not VU then return end
+	pcall(function()
+		local ml=UserInputService:GetMouseLocation()
+		local cf=Workspace.CurrentCamera and Workspace.CurrentCamera.CFrame or CFrame.new()
+		VU:Button1Down(ml,cf)
+		task.delay(0.05,function()pcall(function()VU:Button1Up(ml,cf)end)end)
+	end)
+end
+-- PAGE CONTENT
+do local page=pageFrames.Aim page.Card:Destroy()page.Sub.Text="Cam lock & silent aim"newScroll(page)
+section("Cam Lock")addToggle("Cam Lock",function()return CL.Enabled end,function(v)CL.Enabled=v end)addKeybind("Cam Lock key",function()return CL.Bind end,function(b)CL.Bind=b end)addCycle("Key mode",{"Toggle","Hold"},function()return CL.Mode end,function(v)CL.Mode=v end)addToggle("Auto relock on death",function()return CL.AutoRelock end,function(v)CL.AutoRelock=v end)addSlider("Smoothing",0,95,1,function()return math.floor(CL.Smoothing*100+0.5)end,function(v)CL.Smoothing=v/100 end,percent)addSlider("Prediction",0,0.5,0.01,function()return CL.Prediction end,function(v)CL.Prediction=v end,secs)addToggle("Team check",function()return CL.TeamCheck end,function(v)CL.TeamCheck=v end)addToggle("Wall check",function()return CL.WallCheck end,function(v)CL.WallCheck=v end)
+section("Silent Aim")addToggle("Silent Aim",function()return SA.Enabled end,function(v)SA.Enabled=v end)addKeybind("Silent Aim key",function()return SA.Bind end,function(b)SA.Bind=b end)addCycle("Target part",{"Head","Torso","Root"},function()return SA.TargetPart end,function(v)SA.TargetPart=v end)addSlider("Hit chance",1,100,1,function()return SA.HitChance end,function(v)SA.HitChance=v end,percent)addSlider("FOV",20,600,5,function()return SA.FOV end,function(v)SA.FOV=v end,pixels)addSlider("Prediction",0,0.5,0.01,function()return SA.Prediction end,function(v)SA.Prediction=v end,secs)addToggle("Show FOV circle",function()return SA.ShowFOV end,function(v)SA.ShowFOV=v end)addToggle("Team check",function()return SA.TeamCheck end,function(v)SA.TeamCheck=v end)addToggle("Wall check",function()return SA.WallCheck end,function(v)SA.WallCheck=v end)
+end
+do local page=pageFrames.ESP page.Card:Destroy()page.Sub.Text="Player visuals"newScroll(page)
+section("ESP")addToggle("ESP",function()return S.Enabled end,function(v)S.Enabled=v end)addKeybind("ESP key",function()return S.Bind end,function(b)S.Bind=b end)addSlider("Max distance",100,5000,50,function()return S.MaxDistance end,function(v)S.MaxDistance=v end,studs)addToggle("Team check",function()return S.TeamCheck end,function(v)S.TeamCheck=v end)
+section("Visuals")addToggle("Box",function()return S.Box end,function(v)S.Box=v end)addToggle("Name",function()return S.Name end,function(v)S.Name=v end)addToggle("Distance",function()return S.Distance end,function(v)S.Distance=v end)addToggle("Health bar",function()return S.Health end,function(v)S.Health=v end)addToggle("Outline",function()return S.Outline end,function(v)S.Outline=v end)addToggle("Fill",function()return S.Fill end,function(v)S.Fill=v end)addToggle("Tracers",function()return S.Tracers end,function(v)S.Tracers=v end)addCycle("Tracer from",{"Bottom","Center"},function()return S.TracerOrigin end,function(v)S.TracerOrigin=v end)
+section("Colors")addCycle("Color",ESP.ColorNames,function()return S.Color end,function(v)S.Color=v end)addToggle("Team colors",function()return S.TeamColors end,function(v)S.TeamColors=v end)
+end
+do local page=pageFrames.Player page.Card:Destroy()page.Sub.Text="Movement & Combat"newScroll(page)
+section("Speed")addToggle("Walk speed override",function()return MS.WalkSpeedOn end,function(v)MS.WalkSpeedOn=v end)addSlider("Speed",16,300,1,function()return MS.WalkSpeed end,function(v)MS.WalkSpeed=v end)addKeybind("Speed boost key (hold)",function()return MS.WalkSpeedBind end,function(b)MS.WalkSpeedBind=b end)addSlider("Boost speed",16,500,1,function()return MS.WalkSpeedBindAmount end,function(v)MS.WalkSpeedBindAmount=v end)addToggle("Jump power",function()return MS.JumpPowerOn end,function(v)MS.JumpPowerOn=v end)addSlider("Power",50,500,5,function()return MS.JumpPower end,function(v)MS.JumpPower=v end)addToggle("Infinite jump",function()return MS.InfiniteJump end,function(v)MS.InfiniteJump=v end)
+section("Flight  (W/A/S/D + E=up Q=down)")addToggle("Fly (visible to others)",function()return MS.Fly end,function(v)MS.Fly=v end)addKeybind("Fly key",function()return MS.FlyBind end,function(b)MS.FlyBind=b end)addSlider("Fly speed",10,300,5,function()return MS.FlySpeed end,function(v)MS.FlySpeed=v end)addToggle("Noclip",function()return MS.Noclip end,function(v)MS.Noclip=v end)
+section("Rapid Fire")addToggle("Rapid fire",function()return RF.Enabled end,function(v)RF.Enabled=v Aim.SetRapidFireHook(v,RF.FireRate)end)addKeybind("Rapid fire key",function()return RF.Bind end,function(b)RF.Bind=b end)addSlider("Fire rate",1,20,1,function()return math.floor(RF.FireRate*100+0.5)end,function(v)RF.FireRate=v/100 end,function(v)return string.format("%.2fs",v/100)end)
+section("World")addToggle("Custom gravity",function()return MS.GravityOn end,function(v)MS.GravityOn=v end)addSlider("Gravity",0,400,5,function()return MS.Gravity end,function(v)MS.Gravity=v end)addToggle("Custom FOV",function()return MS.FOVOn end,function(v)MS.FOVOn=v end)addSlider("FOV",30,120,1,function()return MS.FOV end,function(v)MS.FOV=v end)addButton("Reset movement",function()Movement.Reset()end)
+end
+do local page=pageFrames.Users page.Card:Destroy()page.Sub.Text="Pick a target"newScroll(page)
+local suppress=false local lastKey=""local holder,nameBox
+local function rebuild()clearHolder(holder)local results=Users.Search(nameBox.Text)for i,obj in ipairs(results)do if i>8 then break end local disp=obj.DisplayName local text=(disp~=obj.Name)and(disp.."  (@"..obj.Name..")")or obj.Name addListRow(holder,text,obj==Users.Target,function()Users.SetTarget(obj)suppress=true nameBox.Text=obj.Name suppress=false lastKey=""end)end end
+section("Find player")nameBox=addTextBox("Type a name...")
+local infoLabel=addInfo(Users.Info())
+section("Actions")addToggle("Spectate",function()return Users.Spectating end,function(v)Users.SetSpectating(v)end)addToggle("Follow",function()return Users.Following end,function(v)Users.SetFollowing(v)end)addButton("Teleport to player",function()Users.Teleport()end)addButton("Next player",function()Users.Cycle(1)if Users.Target then suppress=true nameBox.Text=Users.Target.Name suppress=false end end)addButton("Previous player",function()Users.Cycle(-1)if Users.Target then suppress=true nameBox.Text=Users.Target.Name suppress=false end end)
+section("Players")holder=newHolder()
+nameBox:GetPropertyChangedSignal("Text"):Connect(function()if suppress then return end if nameBox.Text~=""then Users.SetTarget(Users.Search(nameBox.Text)[1])end lastKey=""rebuild()end)
+rebuild()
+task.spawn(function()while gui.Parent do task.wait(0.25)if pageFrames.Users.Visible then infoLabel.Text=Users.Info()local names={}for _,obj in ipairs(Users.Search(nameBox.Text))do table.insert(names,obj.Name)end local key=table.concat(names,",").."|"..(Users.Target and Users.Target.Name or"")if key~=lastKey then lastKey=key rebuild()end end end end)
+end
+do local page=pageFrames["Da Hood"]page.Card:Destroy()page.Sub.Text="Da Hood utilities"newScroll(page)
+local targetLabel
+local function refreshTarget()if not targetLabel then return end local obj=DS.Target if obj and obj.Parent then local n=obj:IsA("Player")and obj.DisplayName or obj.Name targetLabel.Text="Orbit target: "..n targetLabel.TextColor3=THEME.Accent else targetLabel.Text="Orbit target: none  (set in Users tab)"targetLabel.TextColor3=THEME.SubText end end
+section("Kill Aura  (auto nearest player)")addToggle("Kill aura",function()return DS.KillAuraEnabled end,function(v)DS.KillAuraEnabled=v end)addKeybind("Kill aura key",function()return DS.KillAuraBind end,function(b)DS.KillAuraBind=b end)addSlider("Stomp rate",1,20,1,function()return math.floor(DS.StompRate*100+0.5)end,function(v)DS.StompRate=v/100 end,function(v)return string.format("%.2fs",v/100)end)addSlider("Aura radius",1,15,0.5,function()return DS.KillAuraRadius end,function(v)DS.KillAuraRadius=v end,function(v)return string.format("%.1f",v).." studs"end)addSlider("Orbit speed",0.5,10,0.5,function()return DS.KillAuraSpeed end,function(v)DS.KillAuraSpeed=v end,radsec)
+section("Manual Orbit  (Users target)")targetLabel=addInfo("Orbit target: none")addButton("Use Users target",function()DS.Target=Users.Target refreshTarget()end)addToggle("Orbit target",function()return DS.OrbitEnabled end,function(v)DS.OrbitEnabled=v end)addKeybind("Orbit key",function()return DS.OrbitBind end,function(b)DS.OrbitBind=b end)addSlider("Orbit radius",1,20,0.5,function()return DS.OrbitRadius end,function(v)DS.OrbitRadius=v end,function(v)return string.format("%.1f",v).." studs"end)addSlider("Orbit speed",0.5,10,0.5,function()return DS.OrbitSpeed end,function(v)DS.OrbitSpeed=v end,radsec)addSlider("Height offset",-5,10,0.5,function()return DS.OrbitHeight end,function(v)DS.OrbitHeight=v end,function(v)return string.format("%.1f",v).." studs"end)
+section("Dodge & Survival")addToggle("Arrest dodge  (cop near = teleport)",function()return DS.ArrestDodgeEnabled end,function(v)DS.ArrestDodgeEnabled=v end)addKeybind("Arrest dodge key",function()return DS.ArrestDodgeBind end,function(b)DS.ArrestDodgeBind=b end)addSlider("Dodge distance",5,100,5,function()return DS.ArrestDodgeDist end,function(v)DS.ArrestDodgeDist=v end,studs)addToggle("No ragdoll",function()return DS.NoRagdollEnabled end,function(v)DS.NoRagdollEnabled=v end)addKeybind("No ragdoll key",function()return DS.NoRagdollBind end,function(b)DS.NoRagdollBind=b end)
+section("Utilities")addToggle("Auto revive teammates",function()return DS.AutoReviveEnabled end,function(v)DS.AutoReviveEnabled=v end)addKeybind("Auto revive key",function()return DS.AutoReviveBind end,function(b)DS.AutoReviveBind=b end)addSlider("Revive range",2,20,1,function()return DS.AutoReviveDist end,function(v)DS.AutoReviveDist=v end,studs)addToggle("Auto money bag grab",function()return DS.AutoBagEnabled end,function(v)DS.AutoBagEnabled=v end)addKeybind("Auto bag key",function()return DS.AutoBagBind end,function(b)DS.AutoBagBind=b end)addKeybind("Jail escape key",function()return DS.JailEscapeBind end,function(b)DS.JailEscapeBind=b end)addButton("Jail escape NOW",function()local _,_,root=getChar()if root then local sp=Workspace:FindFirstChild("Spawn")or Workspace:FindFirstChild("SpawnLocation")if sp and sp:IsA("BasePart")then root.CFrame=sp.CFrame+Vector3.new(0,5,0)else root.CFrame=CFrame.new(root.Position+Vector3.new(0,60,0))end end end)addButton("STOP ALL",function()DS.KillAuraEnabled=false DS.OrbitEnabled=false DS.ArrestDodgeEnabled=false DS.NoRagdollEnabled=false DS.AutoReviveEnabled=false DS.AutoBagEnabled=false for _,r in ipairs(refreshers)do r()end end,true)
+task.spawn(function()while gui.Parent do task.wait(0.5)if pageFrames["Da Hood"].Visible then refreshTarget()end end end)
+end
+do local page=pageFrames.Settings page.Card:Destroy()page.Sub.Text="Configs & keybinds"newScroll(page)
+section("Menu")addKeybind("Menu key",function()return MenuSettings.Bind end,function(b)if b and b.EnumType==Enum.KeyCode then MenuSettings.Bind=b end end)
+addButton("Clear all keybinds",function()CL.Bind=false SA.Bind=false S.Bind=false MS.FlyBind=false MS.WalkSpeedBind=false RF.Bind=false DS.KillAuraBind=false DS.OrbitBind=false DS.ArrestDodgeBind=false DS.NoRagdollBind=false DS.AutoReviveBind=false DS.AutoBagBind=false DS.JailEscapeBind=false for _,r in ipairs(refreshers)do r()end end)
+section("Configs")local nameBox=addTextBox("Config name")local status=addInfo("Ready")local slotHolder
+local function currentName()local n=nameBox.Text:gsub("^%s+",""):gsub("%s+$","")return n~=""and n or"default"end
+local function rebuildSlots()clearHolder(slotHolder)for _,name in ipairs(Config.Names())do addListRow(slotHolder,name,name==nameBox.Text,function()nameBox.Text=name end)end end
+addButton("Save config",function()local n=currentName()Config.Save(n)status.Text="Saved "..n rebuildSlots()end)
+addButton("Load config",function()local n=currentName()if Config.Load(n)then for _,r in ipairs(refreshers)do r()end status.Text="Loaded "..n else status.Text="No config named "..n end end)
+addButton("Delete config",function()local n=currentName()Config.Delete(n)status.Text="Deleted "..n rebuildSlots()end)
+slotHolder=newHolder()nameBox:GetPropertyChangedSignal("Text"):Connect(rebuildSlots)
+section("Share / Backup")local exportBox=addTextBox("Config JSON",84,true)
+addButton("Export config",function()exportBox.Text=Config.Export()status.Text="Exported — copy the text"end)
+addButton("Import config",function()local ok,msg=Config.Import(exportBox.Text)if ok then for _,r in ipairs(refreshers)do r()end end status.Text=msg end)
+addButton("Reset everything to defaults",function()Config.ResetAll()for _,r in ipairs(refreshers)do r()end status.Text="Reset to defaults"end)
+end
+local function refreshAll()for _,r in ipairs(refreshers)do r()end end
+Aim.Changed:Connect(refreshAll)ESP.Changed:Connect(refreshAll)Movement.Changed:Connect(refreshAll)RapidFire.Changed:Connect(refreshAll)DaHood.Changed:Connect(refreshAll)Users.Changed:Connect(refreshAll)
+local currentTab=nil local lastTab="Home"local switchToken=0
+local function selectTab(name,instant)
+	if currentTab==name then return end switchToken+=1 local token=switchToken local oldName=currentTab currentTab=name
+	for tabName,btn in pairs(tabButtons)do tween(btn,0.2,{TextColor3=(tabName==name)and THEME.Text or THEME.SubText})end
+	local index=table.find(TAB_NAMES,name)
+	if index then lastTab=name local target=UDim2.new((index-1)/#TAB_NAMES,12,1,-2)tween(indicator,0.2,{BackgroundTransparency=0})if instant then indicator.Position=target else tween(indicator,0.3,{Position=target},Enum.EasingStyle.Quint)end
+	else tween(indicator,0.2,{BackgroundTransparency=1})end
+	setGearColor((name=="Settings")and THEME.Accent or THEME.SubText)
+	if oldName then local old=pageFrames[oldName]local t=tween(old,0.15,{GroupTransparency=1})t.Completed:Connect(function()if token==switchToken or currentTab~=oldName then old.Visible=false end end)end
+	local new=pageFrames[name]new.Visible=true
+	if instant then new.GroupTransparency=0 new.Position=UDim2.fromScale(0,0)
+	else new.GroupTransparency=1 new.Position=UDim2.new(0,0,0,14)tween(new,0.35,{GroupTransparency=0,Position=UDim2.fromScale(0,0)},Enum.EasingStyle.Quint)end
+end
+for name,btn in pairs(tabButtons)do btn.Activated:Connect(function()selectTab(name)end)btn.MouseEnter:Connect(function()if currentTab~=name then tween(btn,0.15,{TextColor3=THEME.Text})end end)btn.MouseLeave:Connect(function()if currentTab~=name then tween(btn,0.15,{TextColor3=THEME.SubText})end end)end
+settingsBtn.MouseEnter:Connect(function()tween(settingsBtn,0.15,{BackgroundColor3=HOVER_BG})tween(gearHole,0.15,{BackgroundColor3=HOVER_BG})tween(gearHolder,0.35,{Rotation=45},Enum.EasingStyle.Quint)if currentTab~="Settings"then setGearColor(THEME.Text)end end)
+settingsBtn.MouseLeave:Connect(function()tween(settingsBtn,0.15,{BackgroundColor3=THEME.Card})tween(gearHole,0.15,{BackgroundColor3=THEME.Card})tween(gearHolder,0.35,{Rotation=0},Enum.EasingStyle.Quint)setGearColor((currentTab=="Settings")and THEME.Accent or THEME.SubText)end)
+settingsBtn.Activated:Connect(function()if currentTab=="Settings"then selectTab(lastTab)else selectTab("Settings")end end)
+local dragging=false local dragStart,startPos
+topBar.InputBegan:Connect(function(input)if input.UserInputType==Enum.UserInputType.MouseButton1 or input.UserInputType==Enum.UserInputType.Touch then dragging=true dragStart=input.Position startPos=main.Position input.Changed:Connect(function()if input.UserInputState==Enum.UserInputState.End then dragging=false end end)end end)
+UserInputService.InputChanged:Connect(function(input)if not dragging then return end if input.UserInputType==Enum.UserInputType.MouseMovement or input.UserInputType==Enum.UserInputType.Touch then local delta=input.Position-dragStart tween(main,0.08,{Position=UDim2.new(startPos.X.Scale,startPos.X.Offset+delta.X,startPos.Y.Scale,startPos.Y.Offset+delta.Y)},Enum.EasingStyle.Quad)end end)
+local isOpen=false local toggleToken=0
+local function setOpen(open)
+	if isOpen==open then return end isOpen=open toggleToken+=1 local token=toggleToken
+	if open then main.Visible=true tween(scale,0.35,{Scale=1},Enum.EasingStyle.Back)
+	else local t=tween(scale,0.2,{Scale=0.85},Enum.EasingStyle.Quad,Enum.EasingDirection.In)t.Completed:Connect(function()if token==toggleToken then main.Visible=false end end)end
+end
+local FULL_H=370 local MIN_H=40 local minimized=false
+local function setMinimized(state)
+	if minimized==state then return end minimized=state local th=state and MIN_H or FULL_H local pos=main.Position local top=pos.Y.Offset-main.Size.Y.Offset/2
+	tween(main,0.35,{Size=UDim2.fromOffset(main.Size.X.Offset,th),Position=UDim2.new(pos.X.Scale,pos.X.Offset,pos.Y.Scale,top+th/2)},Enum.EasingStyle.Quint)
+	tween(topBarFill,0.35,{BackgroundTransparency=state and 1 or 0})minBtn.Text=state and"+"or"-"
+end
+minBtn.Activated:Connect(function()setMinimized(not minimized)end)
+closeBtn.Activated:Connect(function()setOpen(false)end)
+UserInputService.InputBegan:Connect(function(input,processed)if processed then return end if input.KeyCode==MenuSettings.Bind and not Aim.IsCapturing()then setOpen(not isOpen)end end)
+selectTab("Home",true)
+local function escRT(s)return(s:gsub("&","&amp;"):gsub("<","&lt;"):gsub(">","&gt;"))end
+local intro=Instance.new("Frame")intro.Name="Intro"intro.Size=UDim2.fromScale(1,1)intro.BackgroundColor3=THEME.Background intro.BorderSizePixel=0 intro.Active=true intro.ZIndex=100 intro.Parent=main corner(intro,12)
+local introTitle=label(intro,{Name="Title",Text="/Tob2",Font=FONT_BOLD,TextSize=44,AnchorPoint=Vector2.new(0.5,0.5),Position=UDim2.new(0.5,0,0.5,6),Size=UDim2.new(1,0,0,50),TextTransparency=1,ZIndex=101})
+local introSub=label(intro,{Name="Sub",Text="Da Hood Edition",Font=FONT_BOLD,TextSize=16,TextColor3=THEME.Accent,AnchorPoint=Vector2.new(0.5,0.5),Position=UDim2.new(0.5,0,0.5,46),Size=UDim2.new(1,0,0,20),TextTransparency=1,ZIndex=101})
+task.spawn(function()
+	task.wait(0.45)
+	tween(introTitle,0.7,{TextTransparency=0,Position=UDim2.new(0.5,0,0.5,-10)},Enum.EasingStyle.Quint)
+	task.wait(0.4)tween(introSub,0.5,{TextTransparency=0,Position=UDim2.new(0.5,0,0.5,38)},Enum.EasingStyle.Quint)
+	task.wait(1.5)tween(introTitle,0.4,{TextTransparency=1})tween(introSub,0.4,{TextTransparency=1})
+	task.wait(0.2)local fade=tween(intro,0.5,{BackgroundTransparency=1})fade.Completed:Wait()intro:Destroy()
+end)
+setOpen(true)
+local THEME={Background=Color3.fromRGB(16,16,20),TopBar=Color3.fromRGB(22,22,28),Card=Color3.fromRGB(26,26,33),Stroke=Color3.fromRGB(42,42,54),Accent=Color3.fromRGB(124,92,255),Text=Color3.fromRGB(240,240,245),SubText=Color3.fromRGB(140,140,155),Danger=Color3.fromRGB(220,50,60)}
+local FONT=Enum.Font.GothamMedium local FONT_BOLD=Enum.Font.GothamBold
+local function tween(obj,time,props,style,dir)local t=TweenService:Create(obj,TweenInfo.new(time,style or Enum.EasingStyle.Quad,dir or Enum.EasingDirection.Out),props)t:Play()return t end
+local function corner(p,r)local c=Instance.new("UICorner")c.CornerRadius=UDim.new(0,r)c.Parent=p return c end
+local function stroke(p,color,thick,trans)local s=Instance.new("UIStroke")s.Color=color s.Thickness=thick or 1 s.Transparency=trans or 0 s.ApplyStrokeMode=Enum.ApplyStrokeMode.Border s.Parent=p return s end
+local function label(parent,props)local l=Instance.new("TextLabel")l.BackgroundTransparency=1 l.Font=FONT l.TextColor3=THEME.Text l.TextSize=14 l.BorderSizePixel=0 for k,v in pairs(props)do l[k]=v end l.Parent=parent return l end
+local existing=playerGui:FindFirstChild("Tob2UI")if existing then existing:Destroy()end
+local gui=Instance.new("ScreenGui")gui.Name="Tob2UI"gui.ResetOnSpawn=false gui.ZIndexBehavior=Enum.ZIndexBehavior.Sibling gui.IgnoreGuiInset=true gui.DisplayOrder=100 gui.Parent=playerGui
+local main=Instance.new("Frame")main.Name="Main"main.AnchorPoint=Vector2.new(0.5,0.5)main.Position=UDim2.fromScale(0.5,0.5)main.Size=UDim2.fromOffset(460,370)main.BackgroundColor3=THEME.Background main.BorderSizePixel=0 main.ClipsDescendants=true main.Parent=gui
+corner(main,12)stroke(main,THEME.Stroke,1)
+local scale=Instance.new("UIScale")scale.Scale=0.85 scale.Parent=main
+local topBar=Instance.new("Frame")topBar.Name="TopBar"topBar.Size=UDim2.new(1,0,0,40)topBar.BackgroundColor3=THEME.TopBar topBar.BorderSizePixel=0 topBar.Parent=main corner(topBar,12)
+local topBarFill=Instance.new("Frame")topBarFill.Position=UDim2.new(0,0,1,-12)topBarFill.Size=UDim2.new(1,0,0,12)topBarFill.BackgroundColor3=THEME.TopBar topBarFill.BorderSizePixel=0 topBarFill.Parent=topBar
+local accentDot=Instance.new("Frame")accentDot.Size=UDim2.fromOffset(8,8)accentDot.Position=UDim2.new(0,16,0.5,-4)accentDot.BackgroundColor3=THEME.Accent accentDot.BorderSizePixel=0 accentDot.Parent=topBar corner(accentDot,4)
+label(topBar,{Name="Title",Text="/Tob2  •  Da Hood",Font=FONT_BOLD,TextSize=15,TextXAlignment=Enum.TextXAlignment.Left,Position=UDim2.new(0,34,0,0),Size=UDim2.new(1,-150,1,0)})
+local HOVER_BG=Color3.fromRGB(38,38,48)
+local function topButton(name,xo)local b=Instance.new("TextButton")b.Name=name b.AnchorPoint=Vector2.new(1,0.5)b.Position=UDim2.new(1,xo,0.5,0)b.Size=UDim2.fromOffset(26,26)b.BackgroundColor3=THEME.Card b.AutoButtonColor=false b.Text=""b.Font=FONT_BOLD b.TextSize=16 b.TextColor3=THEME.SubText b.BorderSizePixel=0 b.Parent=topBar corner(b,7)return b end
+local closeBtn=topButton("Close",-10)closeBtn.Text="X"closeBtn.TextSize=12
+closeBtn.MouseEnter:Connect(function()tween(closeBtn,0.15,{BackgroundColor3=Color3.fromRGB(200,60,70),TextColor3=THEME.Text})end)
+closeBtn.MouseLeave:Connect(function()tween(closeBtn,0.15,{BackgroundColor3=THEME.Card,TextColor3=THEME.SubText})end)
+local minBtn=topButton("Minimize",-42)minBtn.Text="-"
+minBtn.MouseEnter:Connect(function()tween(minBtn,0.15,{BackgroundColor3=HOVER_BG,TextColor3=THEME.Text})end)
+minBtn.MouseLeave:Connect(function()tween(minBtn,0.15,{BackgroundColor3=THEME.Card,TextColor3=THEME.SubText})end)
+local settingsBtn=topButton("Settings",-74)
+local gearHolder=Instance.new("Frame")gearHolder.AnchorPoint=Vector2.new(0.5,0.5)gearHolder.Position=UDim2.fromScale(0.5,0.5)gearHolder.Size=UDim2.fromOffset(16,16)gearHolder.BackgroundTransparency=1 gearHolder.Parent=settingsBtn
+local gearParts={}
+for i=0,3 do local t=Instance.new("Frame")t.AnchorPoint=Vector2.new(0.5,0.5)t.Position=UDim2.fromScale(0.5,0.5)t.Size=UDim2.fromOffset(3,16)t.Rotation=i*45 t.BackgroundColor3=THEME.SubText t.BorderSizePixel=0 t.Parent=gearHolder corner(t,1)table.insert(gearParts,t)end
+local gearBody=Instance.new("Frame")gearBody.AnchorPoint=Vector2.new(0.5,0.5)gearBody.Position=UDim2.fromScale(0.5,0.5)gearBody.Size=UDim2.fromOffset(11,11)gearBody.BackgroundColor3=THEME.SubText gearBody.BorderSizePixel=0 gearBody.Parent=gearHolder corner(gearBody,6)table.insert(gearParts,gearBody)
+local gearHole=Instance.new("Frame")gearHole.AnchorPoint=Vector2.new(0.5,0.5)gearHole.Position=UDim2.fromScale(0.5,0.5)gearHole.Size=UDim2.fromOffset(5,5)gearHole.BackgroundColor3=THEME.Card gearHole.BorderSizePixel=0 gearHole.Parent=gearHolder corner(gearHole,3)
+local function setGearColor(color)for _,p in ipairs(gearParts)do tween(p,0.2,{BackgroundColor3=color})end end
+local topDivider=Instance.new("Frame")topDivider.Size=UDim2.new(1,0,0,1)topDivider.Position=UDim2.new(0,0,0,40)topDivider.BackgroundColor3=THEME.Stroke topDivider.BorderSizePixel=0 topDivider.Parent=main
+local TAB_NAMES={"Home","Aim","ESP","Player","Users","Da Hood"}
+local PAGE_NAMES=table.clone(TAB_NAMES)table.insert(PAGE_NAMES,"Settings")
+local tabBar=Instance.new("Frame")tabBar.Name="TabBar"tabBar.Position=UDim2.new(0,0,0,41)tabBar.Size=UDim2.new(1,0,0,38)tabBar.BackgroundColor3=THEME.Background tabBar.BorderSizePixel=0 tabBar.Parent=main
+local tabDiv=Instance.new("Frame")tabDiv.Size=UDim2.new(1,0,0,1)tabDiv.Position=UDim2.new(0,0,1,-1)tabDiv.BackgroundColor3=THEME.Stroke tabDiv.BorderSizePixel=0 tabDiv.Parent=tabBar
+local indicator=Instance.new("Frame")indicator.Name="Indicator"indicator.Size=UDim2.new(1/#TAB_NAMES,-24,0,2)indicator.Position=UDim2.new(0,12,1,-2)indicator.BackgroundColor3=THEME.Accent indicator.BorderSizePixel=0 indicator.ZIndex=2 indicator.Parent=tabBar corner(indicator,1)
+local pages=Instance.new("Frame")pages.Name="Pages"pages.Position=UDim2.new(0,0,0,80)pages.Size=UDim2.new(1,0,0,290)pages.BackgroundTransparency=1 pages.ClipsDescendants=true pages.Parent=main
+local PAGE_INFO={Home={"Welcome, "..player.DisplayName,"Da Hood edition"},Aim={"Aim","Cam lock & silent aim"},ESP={"ESP","Player visuals"},Player={"Player","Movement & Combat"},Users={"Users","Pick a target"},["Da Hood"]={"Da Hood","Kill aura, stomp, dodge & more"},Settings={"Settings","Configs & keybinds"}}
+local pageFrames={} local tabButtons={}
+for i,name in ipairs(PAGE_NAMES)do
+	local page=Instance.new("CanvasGroup")page.Name=name page.Size=UDim2.fromScale(1,1)page.BackgroundTransparency=1 page.GroupTransparency=1 page.Visible=false page.Parent=pages
+	label(page,{Name="Header",Text=PAGE_INFO[name][1],Font=FONT_BOLD,TextSize=20,TextXAlignment=Enum.TextXAlignment.Left,Position=UDim2.new(0,20,0,16),Size=UDim2.new(1,-40,0,24)})
+	label(page,{Name="Sub",Text=PAGE_INFO[name][2],TextSize=13,TextColor3=THEME.SubText,TextXAlignment=Enum.TextXAlignment.Left,Position=UDim2.new(0,20,0,42),Size=UDim2.new(1,-40,0,18)})
+	local card=Instance.new("Frame")card.Name="Card"card.Position=UDim2.new(0,20,0,76)card.Size=UDim2.new(1,-40,0,56)card.BackgroundColor3=THEME.Card card.BorderSizePixel=0 card.Parent=page corner(card,8)stroke(card,THEME.Stroke,1)
+	label(card,{Text=name=="Settings"and"Toggle: Right Shift"or name.." content",TextSize=13,TextColor3=THEME.SubText,Size=UDim2.fromScale(1,1)})
+	pageFrames[name]=page
+	if i>#TAB_NAMES then continue end
+	local btn=Instance.new("TextButton")btn.Name=name btn.Size=UDim2.new(1/#TAB_NAMES,0,1,-1)btn.Position=UDim2.new((i-1)/#TAB_NAMES,0,0,0)btn.BackgroundTransparency=1 btn.AutoButtonColor=false btn.Text=name btn.Font=FONT btn.TextSize=13 btn.TextColor3=THEME.SubText btn.BorderSizePixel=0 btn.Parent=tabBar
+	tabButtons[name]=btn
+end
+local refreshers={} local rowOrder=0 local currentScroll
+local function newScroll(page)
+	local s=Instance.new("ScrollingFrame")s.Name="Controls"s.Position=UDim2.new(0,0,0,68)s.Size=UDim2.new(1,0,1,-68)s.BackgroundTransparency=1 s.BorderSizePixel=0 s.ScrollBarThickness=3 s.ScrollBarImageColor3=THEME.Accent s.CanvasSize=UDim2.new()s.AutomaticCanvasSize=Enum.AutomaticSize.Y s.ScrollingDirection=Enum.ScrollingDirection.Y s.Parent=page
+	local list=Instance.new("UIListLayout")list.Padding=UDim.new(0,6)list.SortOrder=Enum.SortOrder.LayoutOrder list.Parent=s
+	local pad=Instance.new("UIPadding")pad.PaddingLeft=UDim.new(0,20)pad.PaddingRight=UDim.new(0,24)pad.PaddingTop=UDim.new(0,2)pad.PaddingBottom=UDim.new(0,14)pad.Parent=s
+	currentScroll=s rowOrder=0 return s
+end
+local function newRow(h)rowOrder+=1 local row=Instance.new("Frame")row.LayoutOrder=rowOrder row.Size=UDim2.new(1,0,0,h or 34)row.BackgroundColor3=THEME.Card row.BorderSizePixel=0 row.Parent=currentScroll corner(row,8)stroke(row,THEME.Stroke,1)return row end
+local function rowLabel(row,text)return label(row,{Text=text,TextSize=13,TextXAlignment=Enum.TextXAlignment.Left,Position=UDim2.new(0,12,0,0),Size=UDim2.new(0.55,0,0,34)})end
+local function addHover(row,hit)hit.MouseEnter:Connect(function()tween(row,0.15,{BackgroundColor3=Color3.fromRGB(31,31,40)})end)hit.MouseLeave:Connect(function()tween(row,0.15,{BackgroundColor3=THEME.Card})end)end
+local function section(text)rowOrder+=1 label(currentScroll,{LayoutOrder=rowOrder,Text=string.upper(text),Font=FONT_BOLD,TextSize=12,TextColor3=THEME.Accent,TextXAlignment=Enum.TextXAlignment.Left,Size=UDim2.new(1,0,0,22)})end
+local function addToggle(text,get,set)
+	local row=newRow()rowLabel(row,text)
+	local sw=Instance.new("Frame")sw.AnchorPoint=Vector2.new(1,0.5)sw.Position=UDim2.new(1,-12,0.5,0)sw.Size=UDim2.fromOffset(36,18)sw.BackgroundColor3=THEME.Stroke sw.BorderSizePixel=0 sw.Parent=row corner(sw,9)
+	local knob=Instance.new("Frame")knob.AnchorPoint=Vector2.new(0,0.5)knob.Position=UDim2.new(0,3,0.5,0)knob.Size=UDim2.fromOffset(12,12)knob.BackgroundColor3=THEME.Text knob.BorderSizePixel=0 knob.Parent=sw corner(knob,6)
+	local hit=Instance.new("TextButton")hit.Size=UDim2.fromScale(1,1)hit.BackgroundTransparency=1 hit.Text=""hit.ZIndex=2 hit.Parent=row addHover(row,hit)
+	local function refresh()local on=get()tween(sw,0.18,{BackgroundColor3=on and THEME.Accent or THEME.Stroke})tween(knob,0.18,{Position=on and UDim2.new(0,21,0.5,0)or UDim2.new(0,3,0.5,0)})end
+	hit.Activated:Connect(function()set(not get())refresh()end)
+	table.insert(refreshers,refresh)refresh()
+end
+local function addSlider(text,min,max,step,get,set,fmt)
+	local row=newRow(50)rowLabel(row,text)
+	local vl=label(row,{Text="",TextSize=13,TextColor3=THEME.SubText,TextXAlignment=Enum.TextXAlignment.Right,AnchorPoint=Vector2.new(1,0),Position=UDim2.new(1,-12,0,0),Size=UDim2.new(0.4,0,0,34)})
+	local track=Instance.new("Frame")track.Position=UDim2.new(0,12,0,36)track.Size=UDim2.new(1,-24,0,4)track.BackgroundColor3=THEME.Stroke track.BorderSizePixel=0 track.Parent=row corner(track,2)
+	local fill=Instance.new("Frame")fill.Size=UDim2.fromScale(0,1)fill.BackgroundColor3=THEME.Accent fill.BorderSizePixel=0 fill.Parent=track corner(fill,2)
+	local knob=Instance.new("Frame")knob.AnchorPoint=Vector2.new(0.5,0.5)knob.Position=UDim2.fromScale(0,0.5)knob.Size=UDim2.fromOffset(12,12)knob.BackgroundColor3=THEME.Text knob.BorderSizePixel=0 knob.ZIndex=2 knob.Parent=track corner(knob,6)
+	local function refresh()local v=get()local a=math.clamp((v-min)/(max-min),0,1)fill.Size=UDim2.fromScale(a,1)knob.Position=UDim2.fromScale(a,0.5)vl.Text=fmt and fmt(v)or tostring(v)end
+	local function setFromX(x)local a=math.clamp((x-track.AbsolutePosition.X)/track.AbsoluteSize.X,0,1)local v=min+a*(max-min)v=math.clamp(math.floor(v/step+0.5)*step,min,max)v=tonumber(string.format("%.3f",v))set(v)refresh()end
+	local hit=Instance.new("TextButton")hit.Position=UDim2.new(0,0,0,26)hit.Size=UDim2.new(1,0,0,24)hit.BackgroundTransparency=1 hit.Text=""hit.ZIndex=3 hit.Parent=row addHover(row,hit)
+	local dragging=false
+	hit.InputBegan:Connect(function(input)if input.UserInputType==Enum.UserInputType.MouseButton1 or input.UserInputType==Enum.UserInputType.Touch then dragging=true setFromX(input.Position.X)input.Changed:Connect(function()if input.UserInputState==Enum.UserInputState.End then dragging=false end end)end end)
+	UserInputService.InputChanged:Connect(function(input)if dragging and(input.UserInputType==Enum.UserInputType.MouseMovement or input.UserInputType==Enum.UserInputType.Touch)then setFromX(input.Position.X)end end)
+	table.insert(refreshers,refresh)refresh()
+end
+local function sideButton(row)local btn=Instance.new("TextButton")btn.AnchorPoint=Vector2.new(1,0.5)btn.Position=UDim2.new(1,-8,0.5,0)btn.Size=UDim2.fromOffset(110,22)btn.BackgroundColor3=THEME.Background btn.AutoButtonColor=false btn.Font=FONT btn.TextSize=12 btn.TextColor3=THEME.Text btn.BorderSizePixel=0 btn.Parent=row corner(btn,6)stroke(btn,THEME.Stroke,1)btn.MouseEnter:Connect(function()tween(btn,0.15,{BackgroundColor3=Color3.fromRGB(30,30,38)})end)btn.MouseLeave:Connect(function()tween(btn,0.15,{BackgroundColor3=THEME.Background})end)return btn end
+local function bindName(bind)if not bind then return"None"end return(bind.Name:gsub("MouseButton","Mouse"))end
+local function addKeybind(text,get,set)
+	local row=newRow()rowLabel(row,text)local btn=sideButton(row)local waiting=false
+	local function refresh()btn.Text=waiting and"Press a key..."or("[ "..bindName(get()).." ]")btn.TextColor3=waiting and THEME.Accent or THEME.Text end
+	btn.Activated:Connect(function()if waiting then return end waiting=true refresh()Aim.CaptureBind(function(bind)waiting=false if bind~=nil then set(bind)end refresh()end)end)
+	btn.MouseButton2Click:Connect(function()if not waiting then set(false)refresh()end end)
+	table.insert(refreshers,refresh)refresh()
+end
+local function addCycle(text,options,get,set)
+	local row=newRow()rowLabel(row,text)local btn=sideButton(row)
+	local function refresh()btn.Text=get()end
+	btn.Activated:Connect(function()local idx=table.find(options,get())or 0 set(options[idx%#options+1])refresh()end)
+	table.insert(refreshers,refresh)refresh()
+end
+local function addButton(text,onClick,danger)
+	local row=newRow()local hit=Instance.new("TextButton")hit.Size=UDim2.fromScale(1,1)hit.BackgroundTransparency=1 hit.Font=FONT hit.TextSize=13 hit.Text=text hit.Parent=row
+	hit.TextColor3=danger and THEME.Danger or THEME.Text addHover(row,hit)
+	hit.Activated:Connect(function()local flash=danger and THEME.Danger or THEME.Accent tween(row,0.1,{BackgroundColor3=flash})task.delay(0.12,function()tween(row,0.25,{BackgroundColor3=THEME.Card})end)onClick()end)
+end
+local function addTextBox(placeholder,height,multiline)
+	local row=newRow(height or 34)local rs=row:FindFirstChildOfClass("UIStroke")
+	local box=Instance.new("TextBox")box.Position=UDim2.fromOffset(10,5)box.Size=UDim2.new(1,-20,1,-10)box.BackgroundTransparency=1 box.Font=FONT box.TextSize=multiline and 11 or 13 box.TextColor3=THEME.Text box.PlaceholderColor3=THEME.SubText box.PlaceholderText=placeholder box.Text=""box.ClearTextOnFocus=false box.TextXAlignment=Enum.TextXAlignment.Left box.TextYAlignment=multiline and Enum.TextYAlignment.Top or Enum.TextYAlignment.Center box.MultiLine=multiline or false box.TextWrapped=multiline or false box.Parent=row
+	box.Focused:Connect(function()tween(rs,0.15,{Color=THEME.Accent})end)box.FocusLost:Connect(function()tween(rs,0.15,{Color=THEME.Stroke})end)return box
+end
+local function addInfo(text)local row=newRow()return label(row,{Text=text,TextSize=12,TextColor3=THEME.SubText,TextXAlignment=Enum.TextXAlignment.Left,TextTruncate=Enum.TextTruncate.AtEnd,Position=UDim2.new(0,12,0,0),Size=UDim2.new(1,-24,1,0)})end
+local function newHolder()rowOrder+=1 local h=Instance.new("Frame")h.LayoutOrder=rowOrder h.Size=UDim2.new(1,0,0,0)h.AutomaticSize=Enum.AutomaticSize.Y h.BackgroundTransparency=1 h.BorderSizePixel=0 h.Parent=currentScroll local l=Instance.new("UIListLayout")l.Padding=UDim.new(0,6)l.SortOrder=Enum.SortOrder.LayoutOrder l.Parent=h return h end
+local function clearHolder(h)for _,c in ipairs(h:GetChildren())do if c:IsA("GuiObject")then c:Destroy()end end end
+local function addListRow(h,text,selected,onClick)local btn=Instance.new("TextButton")btn.LayoutOrder=#h:GetChildren()btn.Size=UDim2.new(1,0,0,30)btn.BackgroundColor3=THEME.Card btn.AutoButtonColor=false btn.Font=FONT btn.TextSize=13 btn.TextXAlignment=Enum.TextXAlignment.Left btn.TextColor3=selected and THEME.Accent or THEME.Text btn.Text=text btn.BorderSizePixel=0 btn.Parent=h corner(btn,8)stroke(btn,selected and THEME.Accent or THEME.Stroke,1)local pad=Instance.new("UIPadding")pad.PaddingLeft=UDim.new(0,12)pad.Parent=btn btn.MouseEnter:Connect(function()tween(btn,0.15,{BackgroundColor3=Color3.fromRGB(31,31,40)})end)btn.MouseLeave:Connect(function()tween(btn,0.15,{BackgroundColor3=THEME.Card})end)btn.Activated:Connect(onClick)end
+local function percent(v)return v.."%"end local function pixels(v)return v.." px"end local function secs(v)return string.format("%.2fs",v)end local function studs(v)return v.." studs"end local function radsec(v)return string.format("%.1f",v).." r/s"end
+local CL=Aim.Settings.CamLock local SA=Aim.Settings.SilentAim local S=ESP.Settings local MS=Movement.Settings local RF=RapidFire.Settings local DS=DaHood.Settings
+local Config=(function()
+	local Config={} Config.Slots={}
+	Config.Sections={CamLock=Aim.Settings.CamLock,SilentAim=Aim.Settings.SilentAim,ESP=ESP.Settings,Movement=Movement.Settings,RapidFire=RapidFire.Settings,DaHood=DaHood.Settings,Menu=MenuSettings}
+	local function encode(v)
+		local k=typeof(v)
+		if k=="boolean"or k=="string"then return v end
+		if k=="number"then if v==v and v~=math.huge and v~=-math.huge then return v end return nil end
+		if k=="EnumItem"then return{Enum=tostring(v.EnumType),Name=v.Name}end return nil
+	end
+	local function decode(saved,current,key)
+		if type(saved)=="table"then
+			if saved.Enum and saved.Name then
+				local ok,et=pcall(function()return Enum[saved.Enum]end)
+				if ok and et then local ok2,item=pcall(function()return et[saved.Name]end)if ok2 and item then return item end end
+			end return nil
+		end
+		if key:sub(-4)=="Bind"and saved==false then return false end
+		if type(saved)==type(current)then return saved end return nil
+	end
+	local function capture()
+		local data={}
+		for sn,section in pairs(Config.Sections)do
+			local out={}
+			for key,value in pairs(section)do local e=encode(value)if e~=nil then out[key]=e end end
+			data[sn]=out
+		end
+		return data
+	end
+	local function apply(data)
+		for sn,saved in pairs(data)do
+			local section=Config.Sections[sn]
+			if section and type(saved)=="table"then
+				for key,sv in pairs(saved)do
+					local current=section[key]
+					if current~=nil and type(current)~="function"and type(current)~="table"then
+						local v=decode(sv,current,key)
+						if section==MenuSettings and(not v or v.EnumType~=Enum.KeyCode)then v=nil end
+						if v~=nil then section[key]=v end
+					end
+				end
+			end
+		end
+	end
+	Config.Defaults=capture()
+	function Config.Export()local ok,r=pcall(function()return HttpService:JSONEncode({v=1,d=capture()})end)return ok and r or""end
+	function Config.Import(text)
+		if type(text)~="string"or text:match("^%s*$")then return false,"Paste a config first"end
+		local ok,decoded=pcall(function()return HttpService:JSONDecode(text)end)
+		if not ok or type(decoded)~="table"or type(decoded.d)~="table"then return false,"Invalid config"end
+		apply(decoded.d)return true,"Config loaded"
+	end
+	function Config.Save(name)Config.Slots[name]=capture()end
+	function Config.Load(name)local data=Config.Slots[name]if not data then return false end apply(data)return true end
+	function Config.Delete(name)Config.Slots[name]=nil end
+	function Config.Names()local names={}for name in pairs(Config.Slots)do table.insert(names,name)end table.sort(names)return names end
+	function Config.ResetAll()apply(Config.Defaults)end
+	return Config
+end)()
+_G.Tob2Config=Config
+if AUTOLOAD_CONFIG~=""then Config.Import(AUTOLOAD_CONFIG)end
+local Users=(function()
+	local Users={} Users.Target=nil Users.Spectating=false Users.Following=false
+	local changedEvent=Instance.new("BindableEvent")Users.Changed=changedEvent.Event
+	local function displayName(obj)if obj:IsA("Player")then return obj.DisplayName end return obj.Name end
+	local function targetParts(obj)
+		if not obj then return nil,nil,nil end
+		local char=obj:IsA("Player")and obj.Character or obj
+		return char,char and char:FindFirstChildOfClass("Humanoid"),char and char:FindFirstChild("HumanoidRootPart")
+	end
+	local function isValid(obj)return obj~=nil and obj.Parent~=nil end
+	local function myRoot()local char=player.Character return char and char:FindFirstChild("HumanoidRootPart")end
+	function Users.List()
+		local list={}
+		for _,plr in ipairs(Players:GetPlayers())do if plr~=player then table.insert(list,plr)end end
+		table.sort(list,function(a,b)return a.Name:lower()<b.Name:lower()end)return list
+	end
+	function Users.Search(query)
+		query=string.lower(query) local matches,loose={},{}
+		for _,obj in ipairs(Users.List())do
+			local name=obj.Name:lower()local disp=displayName(obj):lower()
+			if query==""or name:sub(1,#query)==query or disp:sub(1,#query)==query then table.insert(matches,obj)
+			elseif name:find(query,1,true)or disp:find(query,1,true)then table.insert(loose,obj)end
+		end
+		for _,o in ipairs(loose)do table.insert(matches,o)end return matches
+	end
+	function Users.SetSpectating(state)
+		local cam=Workspace.CurrentCamera
+		if state then
+			local _,hum=targetParts(Users.Target)
+			if not hum or not cam then Users.Spectating=false changedEvent:Fire()return end
+			cam.CameraSubject=hum Users.Spectating=true
+		else
+			Users.Spectating=false
+			local myHum=player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+			if cam and myHum then cam.CameraSubject=myHum end
+		end
+		changedEvent:Fire()
+	end
+	function Users.SetTarget(obj)
+		Users.Target=obj DaHood.Settings.Target=obj
+		if Users.Spectating then
+			local _,hum=targetParts(obj)local cam=Workspace.CurrentCamera
+			if hum and cam then cam.CameraSubject=hum else Users.SetSpectating(false)return end
+		end
+		changedEvent:Fire()
+	end
+	function Users.SetFollowing(state)Users.Following=state and isValid(Users.Target)changedEvent:Fire()end
+	function Users.Teleport()
+		local _,_,tr=targetParts(Users.Target)local root=myRoot()
+		if tr and root then root.CFrame=tr.CFrame*CFrame.new(0,0,4)end
+	end
+	function Users.Cycle(step)
+		local list=Users.List()if #list==0 then return end
+		local index=table.find(list,Users.Target)or(step>0 and 0 or 1)
+		index=(index-1+step)%#list+1 Users.SetTarget(list[index])
+	end
+	function Users.Info()
+		local obj=Users.Target if not isValid(obj)then return "No target selected"end
+		local _,hum,root=targetParts(obj)local mine=myRoot()
+		if hum and root and mine then
+			return string.format("%s  |  %d HP  |  %d studs",displayName(obj),math.floor(hum.Health+0.5),math.floor((root.Position-mine.Position).Magnitude+0.5))
+		end
+		return displayName(obj).."  |  no character"
+	end
+	RunService.Heartbeat:Connect(function()
+		local obj=Users.Target
+		if Users.Spectating then
+			local cam=Workspace.CurrentCamera local _,hum=targetParts(obj)
+			if not isValid(obj)or not hum then Users.SetSpectating(false)
+			elseif cam and cam.CameraSubject~=hum then cam.CameraSubject=hum end
+		end
+		if Users.Following then
+			if not isValid(obj)then Users.Following=false changedEvent:Fire()
+			else local _,_,tr=targetParts(obj)local root=myRoot()if tr and root then root.CFrame=tr.CFrame*CFrame.new(0,0,4)end end
+		end
+	end)
+	return Users
+end)()
+_G.Tob2Users=Users
+local DaHood=(function()
+	local DH={}
+	DH.Settings={
+		KillAuraEnabled=false,KillAuraBind=Enum.KeyCode.K,KillAuraRadius=3,KillAuraSpeed=4,KillAuraHeight=0.5,StompRate=0.08,
+		OrbitEnabled=false,OrbitBind=Enum.KeyCode.O,OrbitRadius=5,OrbitSpeed=3,OrbitHeight=0,
+		ArrestDodgeEnabled=false,ArrestDodgeBind=Enum.KeyCode.J,ArrestDodgeDist=30,
+		NoRagdollEnabled=false,NoRagdollBind=Enum.KeyCode.N,
+		AutoReviveEnabled=false,AutoReviveBind=Enum.KeyCode.V,AutoReviveDist=6,
+		AutoBagEnabled=false,AutoBagBind=Enum.KeyCode.B,
+		JailEscapeBind=Enum.KeyCode.P,
+		Target=nil,
+	}
+	local DS=DH.Settings
+	local changedEvent=Instance.new("BindableEvent")DH.Changed=changedEvent.Event
+	local orbitAngle=0 local lastStomp=0
+	local function findNearest()
+		local _,_,myRoot=getChar()if not myRoot then return nil end
+		local best,bestDist=nil,math.huge
+		for _,other in ipairs(Players:GetPlayers())do
+			if other~=player then
+				local char=other.Character local root=char and char:FindFirstChild("HumanoidRootPart")
+				local hum=char and char:FindFirstChildOfClass("Humanoid")
+				if root and hum and hum.Health>0 then
+					local dist=(root.Position-myRoot.Position).Magnitude
+					if dist<bestDist then best=other bestDist=dist end
+				end
+			end
+		end
+		return best
+	end
+	local BAG_NAMES={"MoneyBag","Money Bag","moneybag","CashBag","Cash Bag","Bag","bag"}
+	local function findBags()
+		local bags={}
+		for _,obj in ipairs(Workspace:GetDescendants())do
+			if obj:IsA("BasePart")or obj:IsA("Model")then
+				for _,name in ipairs(BAG_NAMES)do
+					if obj.Name:lower():find(name:lower(),1,true)then table.insert(bags,obj)break end
+				end
+			end
+		end
+		return bags
+	end
+	RunService.Heartbeat:Connect(function(dt)
+		local char,hum,myRoot=getChar()
+		if not myRoot or not hum or hum.Health<=0 then return end
+		if DS.NoRagdollEnabled then
+			pcall(function()
+				if hum:GetState()==Enum.HumanoidStateType.Ragdoll or hum:GetState()==Enum.HumanoidStateType.FallingDown then
+					hum:ChangeState(Enum.HumanoidStateType.GettingUp)
+				end
+			end)
+		end
+		if DS.ArrestDodgeEnabled then
+			for _,other in ipairs(Players:GetPlayers())do
+				if other~=player then
+					local oChar=other.Character local oRoot=oChar and oChar:FindFirstChild("HumanoidRootPart")
+					if oRoot and(oRoot.Position-myRoot.Position).Magnitude<5.5 then
+						myRoot.CFrame=myRoot.CFrame*CFrame.new(0,0,DS.ArrestDodgeDist)
+					end
+				end
+			end
+		end
+		if DS.KillAuraEnabled then
+			local target=findNearest()
+			if target then
+				local tChar=target.Character local tRoot=tChar and tChar:FindFirstChild("HumanoidRootPart")
+				local tHum=tChar and tChar:FindFirstChildOfClass("Humanoid")
+				if tRoot and tHum and tHum.Health>0 then
+					orbitAngle=orbitAngle+DS.KillAuraSpeed*dt
+					local r=DS.KillAuraRadius
+					myRoot.CFrame=CFrame.new(tRoot.Position.X+math.cos(orbitAngle)*r,tRoot.Position.Y+DS.KillAuraHeight,tRoot.Position.Z+math.sin(orbitAngle)*r)*CFrame.Angles(0,-orbitAngle-math.pi/2,0)
+					local now=tick()
+					if now-lastStomp>=DS.StompRate then
+						lastStomp=now
+						myRoot.CFrame=CFrame.new(tRoot.Position+Vector3.new(0,2,0))
+						clickMouse()
+					end
+				end
+			end
+		elseif DS.OrbitEnabled and DS.Target then
+			local obj=DS.Target if not obj or not obj.Parent then DS.Target=nil return end
+			local tChar=obj:IsA("Player")and obj.Character or obj
+			local tRoot=tChar and tChar:FindFirstChild("HumanoidRootPart")
+			if tRoot then
+				orbitAngle=orbitAngle+DS.OrbitSpeed*dt
+				local r=DS.OrbitRadius
+				myRoot.CFrame=CFrame.new(tRoot.Position.X+math.cos(orbitAngle)*r,tRoot.Position.Y+DS.OrbitHeight,tRoot.Position.Z+math.sin(orbitAngle)*r)*CFrame.Angles(0,-orbitAngle-math.pi/2,0)
+			end
+		end
+		if DS.AutoReviveEnabled then
+			for _,other in ipairs(Players:GetPlayers())do
+				if other~=player then
+					local oChar=other.Character local oHum=oChar and oChar:FindFirstChildOfClass("Humanoid")
+					local oRoot=oChar and oChar:FindFirstChild("HumanoidRootPart")
+					if oHum and oHum.Health<=0 and oRoot and(oRoot.Position-myRoot.Position).Magnitude<=DS.AutoReviveDist then
+						myRoot.CFrame=CFrame.new(oRoot.Position+Vector3.new(0,2,0))
+						if VU then pcall(function()VU:KeyDown(string.byte("e"))task.delay(0.1,function()pcall(function()VU:KeyUp(string.byte("e"))end)end)end)end
+					end
+				end
+			end
+		end
+		if DS.AutoBagEnabled then
+			local bags=findBags()
+			if #bags>0 then
+				local closest,closestDist=nil,math.huge
+				for _,bag in ipairs(bags)do
+					local pos=bag:IsA("BasePart")and bag.Position or(bag.PrimaryPart and bag.PrimaryPart.Position)
+					if pos then local d=(pos-myRoot.Position).Magnitude if d<closestDist then closest=bag closestDist=d end end
+				end
+				if closest then
+					local pos=closest:IsA("BasePart")and closest.Position or(closest.PrimaryPart and closest.PrimaryPart.Position)
+					if pos then myRoot.CFrame=CFrame.new(pos+Vector3.new(0,2,0))end
+				end
+			end
+		end
+	end)
+	UserInputService.InputBegan:Connect(function(input,gp)
+		if gp or Aim.IsCapturing()then return end
+		if inputMatches(input,DS.KillAuraBind)then DS.KillAuraEnabled=not DS.KillAuraEnabled changedEvent:Fire()end
+		if inputMatches(input,DS.OrbitBind)then DS.OrbitEnabled=not DS.OrbitEnabled changedEvent:Fire()end
+		if inputMatches(input,DS.ArrestDodgeBind)then DS.ArrestDodgeEnabled=not DS.ArrestDodgeEnabled changedEvent:Fire()end
+		if inputMatches(input,DS.NoRagdollBind)then DS.NoRagdollEnabled=not DS.NoRagdollEnabled changedEvent:Fire()end
+		if inputMatches(input,DS.AutoReviveBind)then DS.AutoReviveEnabled=not DS.AutoReviveEnabled changedEvent:Fire()end
+		if inputMatches(input,DS.AutoBagBind)then DS.AutoBagEnabled=not DS.AutoBagEnabled changedEvent:Fire()end
+		if inputMatches(input,DS.JailEscapeBind)then
+			local _,_,root=getChar()
+			if root then
+				local sp=Workspace:FindFirstChild("Spawn")or Workspace:FindFirstChild("SpawnLocation")
+				if sp and sp:IsA("BasePart")then root.CFrame=sp.CFrame+Vector3.new(0,5,0)
+				else root.CFrame=CFrame.new(root.Position+Vector3.new(0,60,0))end
+			end
+		end
+	end)
+	return DH
+end)()
+_G.Tob2DaHood=DaHood
+local Movement=(function()
+	local Movement={}
+	Movement.Settings={WalkSpeedOn=false,WalkSpeed=32,WalkSpeedBind=Enum.KeyCode.G,WalkSpeedBindAmount=100,JumpPowerOn=false,JumpPower=100,InfiniteJump=false,Fly=false,FlySpeed=60,FlyBind=Enum.KeyCode.F,Noclip=false,GravityOn=false,Gravity=100,FOVOn=false,FOV=90}
+	local S=Movement.Settings
+	local changedEvent=Instance.new("BindableEvent")Movement.Changed=changedEvent.Event
+	local original={} local appliedHum=nil local flying=false local flyBody=nil local flyGyro=nil
+	local noclipParts={} local originalGravity=nil local originalFOV=nil local walkBound=false local flyVel=Vector3.zero
+	local function stopFly(hum)
+		if flyBody then flyBody:Destroy()flyBody=nil end if flyGyro then flyGyro:Destroy()flyGyro=nil end
+		if flying then flying=false flyVel=Vector3.zero if hum then hum.PlatformStand=false end end
+	end
+	local function axis(pos,neg)
+		local v=0 if UserInputService:IsKeyDown(pos)then v+=1 end if UserInputService:IsKeyDown(neg)then v-=1 end return v
+	end
+	RunService.Heartbeat:Connect(function(dt)
+		local _,hum,root=getChar()
+		if hum then
+			if appliedHum~=hum then appliedHum=hum original.WalkSpeed=nil original.JumpPower=nil original.UseJumpPower=nil end
+			local wantSpeed=S.WalkSpeedOn or walkBound
+			if wantSpeed then
+				if original.WalkSpeed==nil then original.WalkSpeed=hum.WalkSpeed end
+				hum.WalkSpeed=walkBound and S.WalkSpeedBindAmount or S.WalkSpeed
+			elseif original.WalkSpeed~=nil then hum.WalkSpeed=original.WalkSpeed original.WalkSpeed=nil end
+			if S.JumpPowerOn then
+				if original.JumpPower==nil then original.JumpPower=hum.JumpPower original.UseJumpPower=hum.UseJumpPower end
+				hum.UseJumpPower=true hum.JumpPower=S.JumpPower
+			elseif original.JumpPower~=nil then hum.JumpPower=original.JumpPower hum.UseJumpPower=original.UseJumpPower original.JumpPower=nil end
+		end
+		if S.Fly and hum and root and hum.Health>0 then
+			flying=true hum.PlatformStand=true
+			if not flyBody or not flyBody.Parent then
+				if flyBody then flyBody:Destroy()end
+				flyBody=Instance.new("BodyVelocity")flyBody.MaxForce=Vector3.new(1e9,1e9,1e9)flyBody.Velocity=Vector3.zero flyBody.Parent=root
+			end
+			if not flyGyro or not flyGyro.Parent then
+				if flyGyro then flyGyro:Destroy()end
+				flyGyro=Instance.new("BodyGyro")flyGyro.MaxTorque=Vector3.new(1e9,1e9,1e9)flyGyro.P=2e4 flyGyro.D=500 flyGyro.CFrame=root.CFrame flyGyro.Parent=root
+			end
+			local cam=Workspace.CurrentCamera local tv=Vector3.zero
+			if cam and UserInputService:GetFocusedTextBox()==nil then
+				local cf=cam.CFrame
+				local md=cf.LookVector*axis(Enum.KeyCode.W,Enum.KeyCode.S)+cf.RightVector*axis(Enum.KeyCode.D,Enum.KeyCode.A)+Vector3.yAxis*(axis(Enum.KeyCode.Space,Enum.KeyCode.LeftControl)+axis(Enum.KeyCode.E,Enum.KeyCode.Q))
+				if md.Magnitude>0.01 then tv=md.Unit*S.FlySpeed end
+			end
+			flyVel=flyVel:Lerp(tv,math.min(dt*10,1))flyBody.Velocity=flyVel
+			local cam2=Workspace.CurrentCamera
+			if cam2 then local look=cam2.CFrame.LookVector local flat=Vector3.new(look.X,0,look.Z)if flat.Magnitude>0.01 then flyGyro.CFrame=CFrame.lookAt(root.Position,root.Position+flat)end end
+		else stopFly(hum)end
+		if S.GravityOn then
+			if originalGravity==nil then originalGravity=Workspace.Gravity end Workspace.Gravity=S.Gravity
+		elseif originalGravity~=nil then Workspace.Gravity=originalGravity originalGravity=nil end
+	end)
+	RunService.Stepped:Connect(function()
+		local char=player.Character
+		if S.Noclip and char then
+			for _,part in ipairs(char:GetDescendants())do if part:IsA("BasePart")and part.CanCollide then part.CanCollide=false noclipParts[part]=true end end
+		elseif next(noclipParts)~=nil then
+			for part in pairs(noclipParts)do if part.Parent then part.CanCollide=true end noclipParts[part]=nil end
+		end
+	end)
+	RunService:BindToRenderStep("MovFOV",Enum.RenderPriority.Camera.Value+3,function()
+		local cam=Workspace.CurrentCamera if not cam then return end
+		if S.FOVOn then if originalFOV==nil then originalFOV=cam.FieldOfView end cam.FieldOfView=S.FOV
+		elseif originalFOV~=nil then cam.FieldOfView=originalFOV originalFOV=nil end
+	end)
+	UserInputService.JumpRequest:Connect(function()
+		if not S.InfiniteJump then return end local _,hum=getChar()if hum then hum:ChangeState(Enum.HumanoidStateType.Jumping)end
+	end)
+	UserInputService.InputBegan:Connect(function(input,gp)
+		if gp or Aim.IsCapturing()then return end
+		if inputMatches(input,S.FlyBind)then S.Fly=not S.Fly changedEvent:Fire()end
+		if inputMatches(input,S.WalkSpeedBind)then walkBound=true end
+	end)
+	UserInputService.InputEnded:Connect(function(input)if inputMatches(input,S.WalkSpeedBind)then walkBound=false end end)
+	function Movement.Reset()
+		S.WalkSpeedOn=false S.JumpPowerOn=false S.InfiniteJump=false S.Fly=false S.Noclip=false S.GravityOn=false S.FOVOn=false walkBound=false changedEvent:Fire()
+	end
+	return Movement
+end)()
+_G.Tob2Movement=Movement
+-- RAPID FIRE
+local RapidFire=(function()
+	local RF={} RF.Settings={Enabled=false,Bind=Enum.KeyCode.R,FireRate=0.05} local RS=RF.Settings
+	local changedEvent=Instance.new("BindableEvent")RF.Changed=changedEvent.Event
+	local function sync()Aim.SetRapidFireHook(RS.Enabled,RS.FireRate)end
+	UserInputService.InputBegan:Connect(function(input,processed)
+		if processed or Aim.IsCapturing()then return end
+		if input.KeyCode==RS.Bind then RS.Enabled=not RS.Enabled sync()changedEvent:Fire()end
+	end)
+	RunService.Heartbeat:Connect(function()if RS.Enabled then Aim.SetRapidFireHook(true,RS.FireRate)end end)
+	return RF
+end)()
+_G.Tob2RapidFire=RapidFire
+local ESP=(function()
+	local ESP={}
+	ESP.Settings={Enabled=false,Bind=Enum.KeyCode.X,Box=true,Name=true,Distance=true,Health=true,Outline=true,Fill=false,Tracers=false,TracerOrigin="Bottom",TeamCheck=false,TeamColors=false,MaxDistance=1000,Color="Purple"}
+	local S=ESP.Settings
+	ESP.ColorNames={"Purple","Red","Green","Blue","White","Yellow","Orange"}
+	local COLORS={Purple=Color3.fromRGB(124,92,255),Red=Color3.fromRGB(235,64,72),Green=Color3.fromRGB(80,220,140),Blue=Color3.fromRGB(70,150,255),White=Color3.fromRGB(240,240,245),Yellow=Color3.fromRGB(250,215,70),Orange=Color3.fromRGB(255,150,60)}
+	local changedEvent=Instance.new("BindableEvent")ESP.Changed=changedEvent.Event
+	local espGui=playerGui:FindFirstChild("Tob2ESP")if espGui then espGui:Destroy()end
+	espGui=Instance.new("ScreenGui")espGui.Name="Tob2ESP"espGui.ResetOnSpawn=false espGui.IgnoreGuiInset=true espGui.DisplayOrder=40 espGui.ZIndexBehavior=Enum.ZIndexBehavior.Sibling espGui.Parent=playerGui
+	local hlFolder=Workspace:FindFirstChild("Tob2Highlights")if hlFolder then hlFolder:Destroy()end
+	hlFolder=Instance.new("Folder")hlFolder.Name="Tob2Highlights"hlFolder.Parent=Workspace
+	local objects={}
+	local function makeLabel()
+		local l=Instance.new("TextLabel")l.BackgroundTransparency=1 l.Font=Enum.Font.GothamBold l.TextSize=13 l.TextStrokeTransparency=0.4 l.Size=UDim2.fromOffset(200,14)l.AnchorPoint=Vector2.new(0.5,0)l.Visible=false l.Parent=espGui return l
+	end
+	local function createObjects(plr)
+		if objects[plr]then return end local o={}
+		o.Box=Instance.new("Frame")o.Box.BackgroundTransparency=1 o.Box.BorderSizePixel=0 o.Box.Visible=false o.Box.Parent=espGui
+		o.BoxStroke=Instance.new("UIStroke")o.BoxStroke.Thickness=1.5 o.BoxStroke.Parent=o.Box
+		o.NameLabel=makeLabel()o.DistanceLabel=makeLabel()
+		o.HealthBack=Instance.new("Frame")o.HealthBack.BackgroundColor3=Color3.fromRGB(0,0,0)o.HealthBack.BackgroundTransparency=0.35 o.HealthBack.BorderSizePixel=0 o.HealthBack.Visible=false o.HealthBack.Parent=espGui
+		o.HealthFill=Instance.new("Frame")o.HealthFill.AnchorPoint=Vector2.new(0,1)o.HealthFill.Position=UDim2.fromScale(0,1)o.HealthFill.Size=UDim2.fromScale(1,1)o.HealthFill.BorderSizePixel=0 o.HealthFill.Parent=o.HealthBack
+		o.Tracer=Instance.new("Frame")o.Tracer.AnchorPoint=Vector2.new(0.5,0.5)o.Tracer.BorderSizePixel=0 o.Tracer.Visible=false o.Tracer.Parent=espGui
+		o.Highlight=Instance.new("Highlight")o.Highlight.DepthMode=Enum.HighlightDepthMode.AlwaysOnTop o.Highlight.Enabled=false o.Highlight.Parent=hlFolder
+		objects[plr]=o
+	end
+	local function removeObjects(plr)
+		local o=objects[plr]if not o then return end
+		o.Box:Destroy()o.NameLabel:Destroy()o.DistanceLabel:Destroy()o.HealthBack:Destroy()o.Tracer:Destroy()o.Highlight:Destroy()objects[plr]=nil
+	end
+	local function hideDrawings(o)o.Box.Visible=false o.NameLabel.Visible=false o.DistanceLabel.Visible=false o.HealthBack.Visible=false o.Tracer.Visible=false end
+	local function hideAll(o)hideDrawings(o)o.Highlight.Enabled=false end
+	RunService:BindToRenderStep("ESPUpdate",Enum.RenderPriority.Camera.Value+2,function()
+		local cam=Workspace.CurrentCamera if not cam then return end
+		local vp=cam.ViewportSize local cp=cam.CFrame.Position
+		for plr,o in pairs(objects)do
+			local char=plr.Character local hum=char and char:FindFirstChildOfClass("Humanoid")
+			local root=char and char:FindFirstChild("HumanoidRootPart")
+			local show=S.Enabled and hum~=nil and root~=nil and hum.Health>0
+			if show and S.TeamCheck and player.Team~=nil and plr.Team==player.Team then show=false end
+			local dist=0
+			if show then dist=(cp-root.Position).Magnitude if dist>S.MaxDistance then show=false end end
+			if not show then hideAll(o)continue end
+			local color=S.TeamColors and plr.TeamColor.Color or COLORS[S.Color]
+			local hl=o.Highlight if hl.Adornee~=char then hl.Adornee=char end
+			hl.Enabled=S.Outline or S.Fill hl.FillColor=color hl.OutlineColor=color
+			hl.FillTransparency=S.Fill and 0.6 or 1 hl.OutlineTransparency=S.Outline and 0 or 1
+			local cf,size=char:GetBoundingBox()
+			local half=Vector3.new(0,size.Y/2,0)
+			local top=cam:WorldToViewportPoint(cf.Position+half)
+			local bot=cam:WorldToViewportPoint(cf.Position-half)
+			if top.Z<=0 or bot.Z<=0 then hideDrawings(o)continue end
+			local height=math.abs(bot.Y-top.Y)local width=height*0.55
+			local cx=(top.X+bot.X)/2 local x=cx-width/2 local y=math.min(top.Y,bot.Y)
+			o.Box.Visible=S.Box if S.Box then o.Box.Position=UDim2.fromOffset(x,y)o.Box.Size=UDim2.fromOffset(width,height)o.BoxStroke.Color=color end
+			o.NameLabel.Visible=S.Name if S.Name then o.NameLabel.Text=plr.DisplayName o.NameLabel.TextColor3=color o.NameLabel.Position=UDim2.fromOffset(cx,y-16)end
+			o.DistanceLabel.Visible=S.Distance if S.Distance then o.DistanceLabel.Text=math.floor(dist+0.5).." studs"o.DistanceLabel.TextColor3=color o.DistanceLabel.Position=UDim2.fromOffset(cx,y+height+2)end
+			o.HealthBack.Visible=S.Health
+			if S.Health then
+				local ratio=math.clamp(hum.Health/math.max(hum.MaxHealth,1),0,1)
+				o.HealthBack.Position=UDim2.fromOffset(x-6,y)o.HealthBack.Size=UDim2.fromOffset(3,height)
+				o.HealthFill.Size=UDim2.fromScale(1,ratio)o.HealthFill.BackgroundColor3=Color3.fromHSV(ratio*0.33,1,1)
+			end
+			o.Tracer.Visible=S.Tracers
+			if S.Tracers then
+				local from=Vector2.new(vp.X/2,S.TracerOrigin=="Center"and vp.Y/2 or vp.Y)
+				local to=Vector2.new(cx,y+height)local delta=to-from local mid=(from+to)/2
+				o.Tracer.Size=UDim2.fromOffset(delta.Magnitude,1.5)o.Tracer.Position=UDim2.fromOffset(mid.X,mid.Y)
+				o.Tracer.Rotation=math.deg(math.atan2(delta.Y,delta.X))o.Tracer.BackgroundColor3=color
+			end
+		end
+	end)
+	for _,plr in ipairs(Players:GetPlayers())do if plr~=player then createObjects(plr)end end
+	Players.PlayerAdded:Connect(function(plr)if plr~=player then createObjects(plr)end end)
+	Players.PlayerRemoving:Connect(removeObjects)
+	UserInputService.InputBegan:Connect(function(input,gp)
+		if gp or Aim.IsCapturing()then return end
+		local bind=S.Bind if not bind then return end
+		local hit=bind.EnumType==Enum.KeyCode and input.KeyCode==bind or input.UserInputType==bind
+		if hit then S.Enabled=not S.Enabled changedEvent:Fire()end
+	end)
+	return ESP
+end)()
+_G.Tob2ESP=ESP
+local Aim=(function()
+	local Aim={}
+	Aim.Settings={
+		CamLock={Enabled=false,Bind=Enum.KeyCode.Q,Mode="Toggle",TargetPart="Head",Smoothing=0,FOV=math.huge,TeamCheck=false,WallCheck=true,Sticky=true,Prediction=0.1,AutoRelock=true},
+		SilentAim={Enabled=false,Bind=Enum.KeyCode.Z,TargetPart="Head",FOV=250,ShowFOV=true,TeamCheck=false,WallCheck=false,HitChance=100,Prediction=0.1,TestTracer=false},
+	}
+	local CL=Aim.Settings.CamLock local SA=Aim.Settings.SilentAim
+	local changedEvent=Instance.new("BindableEvent") Aim.Changed=changedEvent.Event
+	local function getPart(char,name)
+		if name=="Head" then return char:FindFirstChild("Head")or char:FindFirstChild("HumanoidRootPart")
+		elseif name=="Torso" then return char:FindFirstChild("UpperTorso")or char:FindFirstChild("Torso")or char:FindFirstChild("HumanoidRootPart")end
+		return char:FindFirstChild("HumanoidRootPart")
+	end
+	local function isEnemy(other,teamCheck)
+		if not teamCheck then return true end
+		local ok,same=pcall(function()return player.Team~=nil and other.Team==player.Team end)
+		if ok and same then return false end return true
+	end
+	local rayParams=RaycastParams.new() rayParams.FilterType=Enum.RaycastFilterType.Exclude rayParams.IgnoreWater=true
+	local function isVisible(part,char)
+		local cam=Workspace.CurrentCamera if not cam then return false end
+		local myChar=player.Character rayParams.FilterDescendantsInstances=myChar and{myChar}or{}
+		local result=Workspace:Raycast(cam.CFrame.Position,part.Position-cam.CFrame.Position,rayParams)
+		if not result then return true end return result.Instance:IsDescendantOf(char)
+	end
+	local function getMousePos()
+		local cam=Workspace.CurrentCamera
+		if cam and UserInputService.MouseBehavior==Enum.MouseBehavior.LockCenter then return cam.ViewportSize/2 end
+		return UserInputService:GetMouseLocation()
+	end
+	local function findTarget(cfg,excludeChar)
+		local cam=Workspace.CurrentCamera if not cam then return nil end
+		local mousePos=getMousePos() local best,bestDist=nil,cfg.FOV
+		local function consider(char)
+			if char==excludeChar then return end
+			local hum=char and char:FindFirstChildOfClass("Humanoid")
+			local part=char and getPart(char,cfg.TargetPart)
+			if not(hum and hum.Health>0 and part)then return end
+			local screen,onScreen=cam:WorldToViewportPoint(part.Position)
+			if not onScreen then return end
+			local dist=(Vector2.new(screen.X,screen.Y)-mousePos).Magnitude
+			if dist<bestDist and(not cfg.WallCheck or isVisible(part,char))then best,bestDist=part,dist end
+		end
+		for _,other in ipairs(Players:GetPlayers())do if other~=player and isEnemy(other,cfg.TeamCheck)then consider(other.Character)end end
+		return best
+	end
+	local function isAlive(part)
+		if not part or not part.Parent then return false end
+		local hum=part.Parent:FindFirstChildOfClass("Humanoid")
+		return hum~=nil and hum.Health>0
+	end
+	local function aimPos(part,cfg)
+		local vel=Vector3.zero pcall(function()vel=part.AssemblyLinearVelocity end)
+		return part.Position+vel*cfg.Prediction
+	end
+	function Aim.GetSilentTarget()if not SA.Enabled then return nil end if math.random(1,100)>SA.HitChance then return nil end return findTarget(SA)end
+	function Aim.GetAimPoint(def)local p=Aim.GetSilentTarget()return p and aimPos(p,SA)or def end
+	function Aim.RedirectShot(origin,dir)
+		local p=Aim.GetSilentTarget()if not p then return dir end
+		local to=aimPos(p,SA)-origin if to.Magnitude<1e-3 then return dir end return to.Unit*dir.Magnitude
+	end
+	local function isDir(v)if typeof(v)~="Vector3"then return false end local m=v.Magnitude return m>0.01 and m<5 end
+	local function isPos(v)if typeof(v)~="Vector3"then return false end return v.Magnitude>=5 end
+	local rfShots={} local rfEnabled=false local rfRate=0.05
+	pcall(function()
+		local mt=getrawmetatable(game) local old=mt.__namecall
+		setreadonly(mt,false)
+		mt.__namecall=newcclosure(function(self,...)
+			local method=getnamecallmethod()
+			if method=="FireServer" and self:IsA("RemoteEvent")then
+				local args={...}
+				if SA.Enabled and math.random(1,100)<=SA.HitChance then
+					local target=findTarget(SA)
+					if target then
+						local tp=aimPos(target,SA) local hasDir=false
+						for _,a in ipairs(args)do if isDir(a)then hasDir=true break end end
+						for i,arg in ipairs(args)do
+							if isDir(arg)then
+								local origin=Vector3.zero
+								for j=1,i-1 do if isPos(args[j])then origin=args[j]break end end
+								local to=tp-origin if to.Magnitude>0.01 then args[i]=to.Unit*arg.Magnitude end
+							elseif not hasDir and typeof(arg)=="Vector3" and isPos(arg)then args[i]=tp end
+						end
+					end
+				end
+				if rfEnabled then
+					local key=tostring(self)
+					rfShots[key]={remote=self,args={table.unpack(args)},last=tick()}
+				end
+				return old(self,table.unpack(args))
+			end
+			return old(self,...)
+		end)
+		setreadonly(mt,true)
+	end)
+	RunService.Heartbeat:Connect(function()
+		if not rfEnabled then if next(rfShots)then table.clear(rfShots)end return end
+		local now=tick()
+		for _,data in pairs(rfShots)do
+			if now-data.last>=rfRate then
+				data.last=now
+				pcall(function()
+					local args={table.unpack(data.args)}
+					if SA.Enabled then
+						local t=findTarget(SA)
+						if t then
+							local tp=aimPos(t,SA)
+							for i,arg in ipairs(args)do
+								if isDir(arg)then
+									local origin=Vector3.zero
+									for j=1,i-1 do if isPos(args[j])then origin=args[j]break end end
+									local to=tp-origin if to.Magnitude>0.01 then args[i]=to.Unit*arg.Magnitude end
+								end
+							end
+						end
+					end
+					data.remote:FireServer(table.unpack(args))
+				end)
+			end
+		end
+	end)
+	function Aim.SetRapidFireHook(en,rate)rfEnabled=en if rate then rfRate=rate end end
+	local captureCallback=nil local capturedThisFrame=false local holding=false
+	local lockedTarget=nil local lockedDiedConn=nil
+	local function clearLock()
+		if lockedDiedConn then lockedDiedConn:Disconnect()lockedDiedConn=nil end lockedTarget=nil
+	end
+	local function onTargetDied()
+		clearLock()
+		if not CL.AutoRelock then CL.Enabled=false changedEvent:Fire("CamLock","Enabled",false)end
+	end
+	local function lockOnto(part)
+		clearLock()lockedTarget=part
+		local hum=part and part.Parent and part.Parent:FindFirstChildOfClass("Humanoid")
+		if hum then lockedDiedConn=hum.Died:Connect(onTargetDied)end
+	end
+	function Aim.CaptureBind(cb)captureCallback=cb end
+	function Aim.IsCapturing()return captureCallback~=nil or capturedThisFrame end
+	local function matches(input,bind)
+		if not bind then return false end
+		if bind.EnumType==Enum.KeyCode then return input.KeyCode==bind end
+		return input.UserInputType==bind
+	end
+	UserInputService.InputBegan:Connect(function(input,gp)
+		if captureCallback then
+			local cb=captureCallback local result,done=nil,false
+			if input.UserInputType==Enum.UserInputType.Keyboard then
+				done=true
+				if input.KeyCode==Enum.KeyCode.Backspace or input.KeyCode==Enum.KeyCode.Delete then result=false
+				elseif input.KeyCode~=Enum.KeyCode.Escape then result=input.KeyCode end
+			elseif input.UserInputType==Enum.UserInputType.MouseButton2 or input.UserInputType==Enum.UserInputType.MouseButton3 then
+				done=true result=input.UserInputType
+			end
+			if done then
+				captureCallback=nil capturedThisFrame=true
+				task.defer(function()capturedThisFrame=false end)
+				cb(result)
+			end
+			return
+		end
+		if gp then return end
+		if matches(input,CL.Bind)then
+			if CL.Mode=="Toggle"then CL.Enabled=not CL.Enabled if not CL.Enabled then clearLock()end changedEvent:Fire("CamLock","Enabled",CL.Enabled)
+			else holding=true end
+		end
+		if matches(input,SA.Bind)then SA.Enabled=not SA.Enabled changedEvent:Fire("SilentAim","Enabled",SA.Enabled)end
+	end)
+	UserInputService.InputEnded:Connect(function(input)
+		if matches(input,CL.Bind)then holding=false if CL.Mode~="Toggle"then clearLock()end end
+	end)
+	local fovGui=playerGui:FindFirstChild("AimFOV")if fovGui then fovGui:Destroy()end
+	fovGui=Instance.new("ScreenGui")fovGui.Name="AimFOV"fovGui.ResetOnSpawn=false fovGui.IgnoreGuiInset=true fovGui.DisplayOrder=50 fovGui.ZIndexBehavior=Enum.ZIndexBehavior.Sibling fovGui.Parent=playerGui
+	local silentCircle=Instance.new("Frame")silentCircle.AnchorPoint=Vector2.new(0.5,0.5)silentCircle.BackgroundTransparency=1 silentCircle.BorderSizePixel=0 silentCircle.Visible=false silentCircle.Parent=fovGui
+	local _sc1=Instance.new("UICorner")_sc1.CornerRadius=UDim.new(0.5,0)_sc1.Parent=silentCircle
+	local _sc2=Instance.new("UIStroke")_sc2.Color=Color3.fromRGB(70,190,255)_sc2.Thickness=1.5 _sc2.Transparency=0.25 _sc2.Parent=silentCircle
+	local lockDot=Instance.new("Frame")lockDot.AnchorPoint=Vector2.new(0.5,0.5)lockDot.Size=UDim2.fromOffset(10,10)lockDot.BackgroundColor3=Color3.fromRGB(124,92,255)lockDot.BorderSizePixel=0 lockDot.Visible=false lockDot.ZIndex=10 lockDot.Parent=fovGui
+	local _ld1=Instance.new("UICorner")_ld1.CornerRadius=UDim.new(0.5,0)_ld1.Parent=lockDot
+	local _ld2=Instance.new("UIStroke")_ld2.Color=Color3.fromRGB(255,255,255)_ld2.Thickness=1 _ld2.Transparency=0.5 _ld2.Parent=lockDot
+	RunService:BindToRenderStep("AimAssist",Enum.RenderPriority.Camera.Value+1,function(dt)
+		silentCircle.Visible=SA.Enabled and SA.ShowFOV
+		if silentCircle.Visible then local m=getMousePos()silentCircle.Position=UDim2.fromOffset(m.X,m.Y)silentCircle.Size=UDim2.fromOffset(SA.FOV*2,SA.FOV*2)end
+		local cam=Workspace.CurrentCamera
+		local active=CL.Enabled and(CL.Mode=="Toggle"or holding)
+		if not active or not cam then lockDot.Visible=false return end
+		if lockedTarget and not isAlive(lockedTarget)then clearLock()end
+		if not lockedTarget then local f=findTarget(CL)if f then lockOnto(f)end end
+		if not lockedTarget then lockDot.Visible=false return end
+		local sp,on=cam:WorldToViewportPoint(lockedTarget.Position)
+		lockDot.Visible=on if on then lockDot.Position=UDim2.fromOffset(sp.X,sp.Y)end
+		local goal=CFrame.lookAt(cam.CFrame.Position,aimPos(lockedTarget,CL))
+		local alpha=CL.Smoothing>0 and(1-CL.Smoothing^(dt*60))or 1
+		cam.CFrame=cam.CFrame:Lerp(goal,alpha)
+	end)
+	return Aim
+end)()
+_G.Tob2Aim=Aim
