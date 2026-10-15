@@ -20,7 +20,7 @@ local Workspace=game:GetService("Workspace")
 local HttpService=game:GetService("HttpService")
 local player=Players.LocalPlayer
 local playerGui=player:WaitForChild("PlayerGui")
-local VU=pcall(function() return game:GetService("VirtualUser") end) and game:GetService("VirtualUser") or nil
+local VU=nil pcall(function() VU=game:GetService("VirtualUser") end)
 local AUTOLOAD_CONFIG=""
 local MenuSettings={Bind=Enum.KeyCode.RightShift}
 
