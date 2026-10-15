@@ -724,6 +724,7 @@ _G.Tob2HttpService=HttpService
 _G.Tob2player=player
 _G.Tob2playerGui=playerGui
 _G.Tob2inputMatches=inputMatches
+_G.Tob2loadstring=loadstring
 
 local uiOk,uiErr=pcall(function()
 	loadstring(game:HttpGet("https://raw.githubusercontent.com/Tob2Scripts/DaHoodTob2/main/DaHoodUi"))()
