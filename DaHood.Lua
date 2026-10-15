@@ -239,22 +239,18 @@ local Aim = (function()
 		local temp = Instance.new("RemoteEvent")
 		local method = temp.FireServer
 		temp:Destroy()
-		local hooked = hookfunction(method, newcclosure(function(self, ...)
+		local original = originalFireServer
+		hookfunction(method, newcclosure(function(self, ...)
 			local args = { ... }
-			-- silent aim redirect
 			if SA.Enabled and math.random(1, 100) <= SA.HitChance then
 				local target = findTarget(SA)
-				if target then
-					redirectArgs(args, aimPos(target, SA))
-				end
+				if target then redirectArgs(args, aimPos(target, SA)) end
 			end
-			-- rapid fire snapshot
 			if rfEnabled then
 				rfShots[tostring(self)] = { remote = self, args = table.pack(table.unpack(args)), last = tick() }
 			end
-			return hooked(self, table.unpack(args))
+			return original(self, table.unpack(args))
 		end))
-		originalFireServer = hooked
 	end)
 
 	-- rapid fire loop uses originalFireServer to avoid re-hooking
@@ -1288,7 +1284,7 @@ _G.Tob2inputMatches    = inputMatches
 -- ── Load UI ───────────────────────────────────────────────
 local _ls = loadstring
 local uiOk, uiErr = pcall(function()
-	_ls(game:HttpGet("https://raw.githubusercontent.com/Tob2Scripts/DaHoodTob2/main/DaHoodUi.Lua"))()
+	_ls(game:HttpGet("https://raw.githubusercontent.com/Tob2Scripts/DaHoodTob2/main/DaHoodUI.Lua"))()
 end)
 if not uiOk then showError("UI load failed: " .. tostring(uiErr)) end
 
