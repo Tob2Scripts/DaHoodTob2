@@ -228,10 +228,18 @@ local Aim = (function()
 	local rfShots   = {}
 
 	-- original FireServer reference (captured before hook)
-	local originalFireServer = RemoteEvent.FireServer
+	local originalFireServer
+	do
+		local temp = Instance.new("RemoteEvent")
+		originalFireServer = temp.FireServer
+		temp:Destroy()
+	end
 
 	pcall(function()
-		originalFireServer = hookfunction(RemoteEvent.FireServer, newcclosure(function(self, ...)
+		local temp = Instance.new("RemoteEvent")
+		local method = temp.FireServer
+		temp:Destroy()
+		originalFireServer = hookfunction(method, newcclosure(function(self, ...)
 			local args = { ... }
 			-- silent aim redirect
 			if SA.Enabled and math.random(1, 100) <= SA.HitChance then
