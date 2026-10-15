@@ -726,7 +726,7 @@ _G.Tob2playerGui=playerGui
 _G.Tob2inputMatches=inputMatches
 
 local uiOk,uiErr=pcall(function()
-	loadstring(game:HttpGet("https://raw.githubusercontent.com/Tob2Scripts/DaHoodTob2/main/DaHoodUI.Lua"))()
+	loadstring(game:HttpGet("https://raw.githubusercontent.com/Tob2Scripts/DaHoodTob2/main/DaHoodUi"))()
 end)
 if not uiOk then showError("UI: "..tostring(uiErr)) end
 
