@@ -1,5 +1,5 @@
 -- ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
--- /Tob2 Da Hood Script  |  UI
+-- /Tob2 Des Hood Script  |  UI
 -- ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
 
 -- ── Pull globals from core ────────────────────────────────
@@ -175,7 +175,7 @@ corner(accentDot, 4)
 
 label(topBar, {
 	Name           = "Title",
-	Text           = "/Tob2  •  Da Hood",
+	Text           = "/Tob2  •  Des Hood",
 	Font           = FONT_BOLD,
 	TextSize       = 15,
 	TextXAlignment = Enum.TextXAlignment.Left,
@@ -308,7 +308,7 @@ do
 end
 
 -- ── Tab bar ───────────────────────────────────────────────
-local TAB_NAMES  = { "Home","Aim","ESP","Player","Users","Da Hood" }
+local TAB_NAMES  = { "Home","Aim","ESP","Player","Users","Des Hood" }
 local PAGE_NAMES = table.clone(TAB_NAMES)
 table.insert(PAGE_NAMES, "Settings")
 
@@ -358,7 +358,7 @@ local PAGE_INFO = {
 	ESP       = { "ESP",         "Player visuals"                                 },
 	Player    = { "Player",      "Movement & combat"                              },
 	Users     = { "Users",       "Pick a target"                                  },
-	["Da Hood"]={ "Da Hood",     "Kill aura, stomp, dodge & more"                 },
+	["Des Hood"]={ "Des Hood",   "Kill aura, stomp, dodge & more"                 },
 	Settings  = { "Settings",    "Configs & keybinds"                             },
 }
 
@@ -840,7 +840,7 @@ do
 	section("Tips")
 	addInfo("Aim page: Camera Lock & Silent Aim")
 	addInfo("Player page: Speed, Jump, Fly, Noclip")
-	addInfo("Da Hood page: Kill Aura, Telekinesis & more")
+	addInfo("Des Hood page: Kill Aura, Telekinesis & more")
 end
 
 -- ── Page: Aim ─────────────────────────────────────────────
@@ -961,8 +961,8 @@ end)
 Players.PlayerAdded:Connect(refreshUsers)
 Players.PlayerRemoving:Connect(function() task.defer(refreshUsers) end)
 
--- ── Page: Da Hood ─────────────────────────────────────────
-newScroll(pageFrames["Da Hood"])
+-- ── Page: Des Hood ────────────────────────────────────────
+newScroll(pageFrames["Des Hood"])
 section("Kill Aura")
 addToggle("Enabled",       function() return DS.KillAuraEnabled    end, function(v) DS.KillAuraEnabled    = v end)
 addKeybind("Bind",         function() return DS.KillAuraBind       end, function(v) DS.KillAuraBind       = v end)
@@ -1006,7 +1006,12 @@ addSlider("Duration",      0.5, 10, 0.5,  function() return DS.SpeedBoostDuratio
 section("Rapid Fire")
 addToggle("Enabled",       function() return RF.Enabled  end, function(v) RF.Enabled  = v Aim.SetRapidFire(v, RF.FireRate) end)
 addKeybind("Bind",         function() return RF.Bind     end, function(v) RF.Bind     = v end)
-addSlider("Fire Rate",     0.01, 0.3, 0.01, function() return RF.FireRate end, function(v) RF.FireRate = v end, sec)
+-- Issue G fix: when the FireRate slider changes while Rapid Fire is already ON, update the
+-- running hook immediately. Without this, the new rate only takes effect after toggle off/on.
+addSlider("Fire Rate",     0.01, 0.3, 0.01, function() return RF.FireRate end, function(v)
+	RF.FireRate = v
+	if RF.Enabled then Aim.SetRapidFire(true, v) end
+end, sec)
 
 -- ── Page: Settings ────────────────────────────────────────
 newScroll(pageFrames["Settings"])
