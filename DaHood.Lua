@@ -446,6 +446,8 @@ _G.Tob2Aim = Aim
 local DaHood = (function()
 	local M = {}
 	M.Settings = {
+		-- Infinite Ammo: keep all gun Ammo values maxed
+		InfiniteAmmoEnabled = false,
 		KillAuraEnabled    = false, KillAuraBind    = Enum.KeyCode.K, KillAuraRadius = 3,  KillAuraSpeed = 4, KillAuraHeight = 0.5, StompRate = 0.08,
 		OrbitEnabled       = false, OrbitBind       = Enum.KeyCode.O, OrbitRadius    = 5,  OrbitSpeed    = 3, OrbitHeight    = 0,
 		ArrestDodgeEnabled = false, ArrestDodgeBind = Enum.KeyCode.J, ArrestDodgeDist= 30,
@@ -538,6 +540,37 @@ local DaHood = (function()
 	RunService.Heartbeat:Connect(function(dt)
 		local _, hum, myRoot = getChar()
 		if not myRoot or not hum or hum.Health <= 0 then return end
+
+		-- Infinite ammo: find Ammo IntValue/NumberValue in all tools
+		if DS.InfiniteAmmoEnabled then
+			local char = player.Character
+			if char then
+				for _, tool in ipairs(char:GetChildren()) do
+					if tool:IsA("Tool") then
+						-- try direct Ammo child
+						local ammo = tool:FindFirstChild("Ammo")
+						if ammo and (ammo:IsA("IntValue") or ammo:IsA("NumberValue")) then
+							if ammo.Value < 30 then ammo.Value = 30 end
+						end
+						-- also check one level deeper (some games nest it)
+						for _, v in ipairs(tool:GetChildren()) do
+							if (v:IsA("IntValue") or v:IsA("NumberValue")) and v.Name == "Ammo" then
+								if v.Value < 30 then v.Value = 30 end
+							end
+						end
+					end
+				end
+				-- also check Backpack so reloading from backpack keeps ammo
+				for _, tool in ipairs(player.Backpack:GetChildren()) do
+					if tool:IsA("Tool") then
+						local ammo = tool:FindFirstChild("Ammo")
+						if ammo and (ammo:IsA("IntValue") or ammo:IsA("NumberValue")) then
+							if ammo.Value < 30 then ammo.Value = 30 end
+						end
+					end
+				end
+			end
+		end
 
 		if DS.NoRagdollEnabled then
 			pcall(function()
