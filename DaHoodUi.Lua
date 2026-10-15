@@ -142,8 +142,9 @@ local DS=DaHood.Settings
 local currentPage=nil
 local function switchTab(name)
 	if currentPage then
-		tween(pageFrames[currentPage],0.15,{GroupTransparency=1})
-		task.delay(0.15,function() if pageFrames[currentPage] then pageFrames[currentPage].Visible=false end end)
+		local prev=currentPage
+		tween(pageFrames[prev],0.15,{GroupTransparency=1})
+		task.delay(0.15,function() if pageFrames[prev] then pageFrames[prev].Visible=false end end)
 	end
 	currentPage=name
 	local page=pageFrames[name]
@@ -159,6 +160,27 @@ local function switchTab(name)
 end
 for name,btn in pairs(tabButtons) do
 	btn.Activated:Connect(function() switchTab(name) end)
+end
+
+-- drag
+do
+	local dragging=false local dragStart=nil local startPos=nil
+	topBar.InputBegan:Connect(function(input)
+		if input.UserInputType==Enum.UserInputType.MouseButton1 or input.UserInputType==Enum.UserInputType.Touch then
+			dragging=true
+			dragStart=input.Position
+			startPos=main.Position
+			input.Changed:Connect(function()
+				if input.UserInputState==Enum.UserInputState.End then dragging=false end
+			end)
+		end
+	end)
+	UserInputService.InputChanged:Connect(function(input)
+		if dragging and (input.UserInputType==Enum.UserInputType.MouseMovement or input.UserInputType==Enum.UserInputType.Touch) then
+			local delta=input.Position-dragStart
+			main.Position=UDim2.new(startPos.X.Scale,startPos.X.Offset+delta.X,startPos.Y.Scale,startPos.Y.Offset+delta.Y)
+		end
+	end)
 end
 local minimized=false
 local function setMinimized(state)
