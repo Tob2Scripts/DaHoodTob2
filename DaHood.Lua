@@ -8,45 +8,45 @@ local function showError(msg)
 		local pg  = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
 		local old = pg:FindFirstChild("Tob2Error")
 		if old then old:Destroy() end
-		local eg  = Instance.new("ScreenGui")
-		eg.Name          = "Tob2Error"
-		eg.ResetOnSpawn  = false
-		eg.DisplayOrder  = 999
+		local eg = Instance.new("ScreenGui")
+		eg.Name           = "Tob2Error"
+		eg.ResetOnSpawn   = false
+		eg.DisplayOrder   = 999
 		eg.IgnoreGuiInset = true
-		eg.Parent        = pg
+		eg.Parent         = pg
 		local bg = Instance.new("Frame")
-		bg.AnchorPoint       = Vector2.new(0.5, 0)
-		bg.Position          = UDim2.new(0.5, 0, 0, 12)
-		bg.Size              = UDim2.new(0.9, 0, 0, 0)
-		bg.AutomaticSize     = Enum.AutomaticSize.Y
-		bg.BackgroundColor3  = Color3.fromRGB(40, 10, 10)
-		bg.BorderSizePixel   = 0
-		bg.Parent            = eg
+		bg.AnchorPoint      = Vector2.new(0.5, 0)
+		bg.Position         = UDim2.new(0.5, 0, 0, 12)
+		bg.Size             = UDim2.new(0.9, 0, 0, 0)
+		bg.AutomaticSize    = Enum.AutomaticSize.Y
+		bg.BackgroundColor3 = Color3.fromRGB(40, 10, 10)
+		bg.BorderSizePixel  = 0
+		bg.Parent           = eg
 		local co = Instance.new("UICorner") co.CornerRadius = UDim.new(0, 8) co.Parent = bg
 		local lbl = Instance.new("TextLabel")
-		lbl.Size                = UDim2.new(1, -16, 0, 0)
-		lbl.Position            = UDim2.fromOffset(8, 8)
-		lbl.AutomaticSize       = Enum.AutomaticSize.Y
+		lbl.Size                   = UDim2.new(1, -16, 0, 0)
+		lbl.Position               = UDim2.fromOffset(8, 8)
+		lbl.AutomaticSize          = Enum.AutomaticSize.Y
 		lbl.BackgroundTransparency = 1
-		lbl.Font                = Enum.Font.GothamMedium
-		lbl.TextSize            = 13
-		lbl.TextColor3          = Color3.fromRGB(255, 100, 100)
-		lbl.TextXAlignment      = Enum.TextXAlignment.Left
-		lbl.TextWrapped         = true
-		lbl.Text                = "[Tob2] Error:\n" .. tostring(msg)
-		lbl.Parent              = bg
+		lbl.Font                   = Enum.Font.GothamMedium
+		lbl.TextSize               = 13
+		lbl.TextColor3             = Color3.fromRGB(255, 100, 100)
+		lbl.TextXAlignment         = Enum.TextXAlignment.Left
+		lbl.TextWrapped            = true
+		lbl.Text                   = "[Tob2] Error:\n" .. tostring(msg)
+		lbl.Parent                 = bg
 	end)
 end
 
 local ok, err = pcall(function()
 
 -- ── Services ──────────────────────────────────────────────
-local Players         = game:GetService("Players")
-local TweenService    = game:GetService("TweenService")
-local UserInputService= game:GetService("UserInputService")
-local RunService      = game:GetService("RunService")
-local Workspace       = game:GetService("Workspace")
-local HttpService     = game:GetService("HttpService")
+local Players          = game:GetService("Players")
+local TweenService     = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local RunService       = game:GetService("RunService")
+local Workspace        = game:GetService("Workspace")
+local HttpService      = game:GetService("HttpService")
 
 local player    = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
@@ -96,15 +96,14 @@ local Aim = (function()
 	local M = {}
 	M.Settings = {
 		CamLock   = { Enabled=false, Bind=Enum.KeyCode.Q,  Mode="Toggle", TargetPart="Head", Smoothing=0,   FOV=math.huge, TeamCheck=false, WallCheck=true,  Sticky=true,  Prediction=0.1, AutoRelock=true  },
-		SilentAim = { Enabled=false, Bind=Enum.KeyCode.Z,  TargetPart="Head", FOV=250, ShowFOV=true, TeamCheck=false, WallCheck=false, HitChance=100, Prediction=0.1, TestTracer=false },
+		SilentAim = { Enabled=false, Bind=Enum.KeyCode.Z,  TargetPart="Head", FOV=250, ShowFOV=true, TeamCheck=false, WallCheck=false, HitChance=100, Prediction=0.1 },
 	}
 
-	local CL           = M.Settings.CamLock
-	local SA           = M.Settings.SilentAim
-	local changed      = Instance.new("BindableEvent")
-	M.Changed          = changed.Event
+	local CL      = M.Settings.CamLock
+	local SA      = M.Settings.SilentAim
+	local changed = Instance.new("BindableEvent")
+	M.Changed     = changed.Event
 
-	-- internal helpers
 	local function getPart(char, name)
 		if name == "Head"  then return char:FindFirstChild("Head")       or char:FindFirstChild("HumanoidRootPart") end
 		if name == "Torso" then return char:FindFirstChild("UpperTorso") or char:FindFirstChild("Torso") or char:FindFirstChild("HumanoidRootPart") end
@@ -227,38 +226,41 @@ local Aim = (function()
 	local rfRate    = 0.05
 	local rfShots   = {}
 
-	-- original FireServer reference (captured before hook)
-	local originalFireServer
-	do
-		local temp = Instance.new("RemoteEvent")
-		originalFireServer = temp.FireServer
-		temp:Destroy()
-	end
-
+	-- Silent aim + rapid fire: hook FireServer
+	-- hookfunction(f, replacement) replaces f and returns the original callable.
+	-- We must call the RETURNED original to avoid infinite recursion.
+	local fireServerOriginal  -- will hold the trampoline returned by hookfunction
 	pcall(function()
 		local temp = Instance.new("RemoteEvent")
 		local method = temp.FireServer
 		temp:Destroy()
-		local original = originalFireServer
-		hookfunction(method, newcclosure(function(self, ...)
+		fireServerOriginal = hookfunction(method, newcclosure(function(self, ...)
 			local args = { ... }
+			-- silent aim
 			if SA.Enabled and math.random(1, 100) <= SA.HitChance then
 				local target = findTarget(SA)
 				if target then redirectArgs(args, aimPos(target, SA)) end
 			end
+			-- rapid fire snapshot (record last-fired args for replay)
 			if rfEnabled then
-				rfShots[tostring(self)] = { remote = self, args = table.pack(table.unpack(args)), last = tick() }
+				rfShots[tostring(self)] = {
+					remote = self,
+					args   = table.pack(table.unpack(args)),
+					last   = tick(),
+				}
 			end
-			return original(self, table.unpack(args))
+			-- call original via trampoline — NOT via the hooked method
+			return fireServerOriginal(self, table.unpack(args))
 		end))
 	end)
 
-	-- rapid fire loop uses originalFireServer to avoid re-hooking
+	-- rapid fire heartbeat loop
 	RunService.Heartbeat:Connect(function()
 		if not rfEnabled then
 			if next(rfShots) then table.clear(rfShots) end
 			return
 		end
+		if not fireServerOriginal then return end
 		local now = tick()
 		for _, data in pairs(rfShots) do
 			if now - data.last >= rfRate then
@@ -269,7 +271,7 @@ local Aim = (function()
 						local t = findTarget(SA)
 						if t then redirectArgs(args, aimPos(t, SA)) end
 					end
-					originalFireServer(data.remote, table.unpack(args))
+					fireServerOriginal(data.remote, table.unpack(args))
 				end)
 			end
 		end
@@ -281,9 +283,9 @@ local Aim = (function()
 	end
 
 	-- keybind capture
-	local captureCallback  = nil
+	local captureCallback   = nil
 	local capturedThisFrame = false
-	local holding          = false
+	local holding           = false
 
 	function M.CaptureBind(cb) captureCallback = cb end
 	function M.IsCapturing() return captureCallback ~= nil or capturedThisFrame end
@@ -296,7 +298,7 @@ local Aim = (function()
 
 	UserInputService.InputBegan:Connect(function(input, gp)
 		if captureCallback then
-			local cb = captureCallback
+			local cb    = captureCallback
 			local result, done = nil, false
 			if input.UserInputType == Enum.UserInputType.Keyboard then
 				done = true
@@ -307,11 +309,11 @@ local Aim = (function()
 				end
 			elseif input.UserInputType == Enum.UserInputType.MouseButton2
 			    or input.UserInputType == Enum.UserInputType.MouseButton3 then
-				done = true
+				done   = true
 				result = input.UserInputType
 			end
 			if done then
-				captureCallback = nil
+				captureCallback   = nil
 				capturedThisFrame = true
 				task.defer(function() capturedThisFrame = false end)
 				cb(result)
@@ -342,7 +344,7 @@ local Aim = (function()
 	end)
 
 	-- camlock state
-	local lockedTarget  = nil
+	local lockedTarget   = nil
 	local lockedDiedConn = nil
 
 	function M.ClearLock()
@@ -378,11 +380,11 @@ local Aim = (function()
 		fovGui.Parent         = playerGui
 
 		local silentCircle = Instance.new("Frame")
-		silentCircle.AnchorPoint        = Vector2.new(0.5, 0.5)
+		silentCircle.AnchorPoint            = Vector2.new(0.5, 0.5)
 		silentCircle.BackgroundTransparency = 1
-		silentCircle.BorderSizePixel    = 0
-		silentCircle.Visible            = false
-		silentCircle.Parent             = fovGui
+		silentCircle.BorderSizePixel        = 0
+		silentCircle.Visible                = false
+		silentCircle.Parent                 = fovGui
 		do local c = Instance.new("UICorner") c.CornerRadius = UDim.new(0.5, 0) c.Parent = silentCircle end
 		do local s = Instance.new("UIStroke") s.Color = Color3.fromRGB(70,190,255) s.Thickness = 1.5 s.Transparency = 0.25 s.Parent = silentCircle end
 
@@ -413,10 +415,17 @@ local Aim = (function()
 			end
 
 			if lockedTarget and not isAlive(lockedTarget) then M.ClearLock() end
+
+			-- Sticky: only find a new target when we have none
 			if not lockedTarget then
 				local f = findTarget(CL)
 				if f then lockOnto(f) end
+			elseif not CL.Sticky then
+				-- Non-sticky: re-evaluate best target every frame
+				local f = findTarget(CL)
+				if f and f ~= lockedTarget then lockOnto(f) end
 			end
+
 			if not lockedTarget then lockDot.Visible = false return end
 
 			local sp, on = cam:WorldToViewportPoint(lockedTarget.Position)
@@ -435,16 +444,20 @@ _G.Tob2Aim = Aim
 
 -- ── Da Hood Module ────────────────────────────────────────
 local DaHood = (function()
-	local M  = {}
+	local M = {}
 	M.Settings = {
-		KillAuraEnabled   = false, KillAuraBind   = Enum.KeyCode.K, KillAuraRadius = 3,  KillAuraSpeed = 4, KillAuraHeight = 0.5, StompRate = 0.08,
-		OrbitEnabled      = false, OrbitBind      = Enum.KeyCode.O, OrbitRadius    = 5,  OrbitSpeed    = 3, OrbitHeight    = 0,
-		ArrestDodgeEnabled= false, ArrestDodgeBind= Enum.KeyCode.J, ArrestDodgeDist= 30,
-		NoRagdollEnabled  = false, NoRagdollBind  = Enum.KeyCode.N,
-		AutoReviveEnabled = false, AutoReviveBind = Enum.KeyCode.V, AutoReviveDist = 6,
-		AutoBagEnabled    = false, AutoBagBind    = Enum.KeyCode.B,
-		JailEscapeBind    = Enum.KeyCode.P,
-		Target            = nil,
+		KillAuraEnabled    = false, KillAuraBind    = Enum.KeyCode.K, KillAuraRadius = 3,  KillAuraSpeed = 4, KillAuraHeight = 0.5, StompRate = 0.08,
+		OrbitEnabled       = false, OrbitBind       = Enum.KeyCode.O, OrbitRadius    = 5,  OrbitSpeed    = 3, OrbitHeight    = 0,
+		ArrestDodgeEnabled = false, ArrestDodgeBind = Enum.KeyCode.J, ArrestDodgeDist= 30,
+		NoRagdollEnabled   = false, NoRagdollBind   = Enum.KeyCode.N,
+		AutoReviveEnabled  = false, AutoReviveBind  = Enum.KeyCode.V, AutoReviveDist = 6,
+		AutoBagEnabled     = false, AutoBagBind     = Enum.KeyCode.B,
+		JailEscapeBind     = Enum.KeyCode.P,
+		Target             = nil,
+		-- Telekinesis
+		TelekinesisEnabled = false, TelekinesisBind = Enum.KeyCode.T, TelekinesisForce = 60,
+		-- Speed Boost on Kill
+		SpeedBoostEnabled  = false, SpeedBoostAmount = 80, SpeedBoostDuration = 2.5,
 	}
 	local DS      = M.Settings
 	local changed = Instance.new("BindableEvent")
@@ -486,6 +499,41 @@ local DaHood = (function()
 		end
 		return bags
 	end
+
+	-- Telekinesis state
+	local tkHolding = false
+
+	-- Speed Boost on Kill: hook enemy Humanoid.Died for each player
+	local function hookSpeedBoost(other)
+		if other == player then return end
+		local function hookChar(char)
+			if not char then return end
+			local hum = char:FindFirstChildOfClass("Humanoid")
+			if not hum then return end
+			hum.Died:Connect(function()
+				if not DS.SpeedBoostEnabled then return end
+				local myChar = player.Character
+				local myHum  = myChar and myChar:FindFirstChildOfClass("Humanoid")
+				if not myHum or myHum.Health <= 0 then return end
+				pcall(function()
+					local orig = myHum.WalkSpeed
+					myHum.WalkSpeed = DS.SpeedBoostAmount
+					task.delay(DS.SpeedBoostDuration, function()
+						pcall(function()
+							if myHum and myHum.Parent then
+								myHum.WalkSpeed = orig
+							end
+						end)
+					end)
+				end)
+			end)
+		end
+		hookChar(other.Character)
+		other.CharacterAdded:Connect(hookChar)
+	end
+
+	for _, other in ipairs(Players:GetPlayers()) do hookSpeedBoost(other) end
+	Players.PlayerAdded:Connect(hookSpeedBoost)
 
 	RunService.Heartbeat:Connect(function(dt)
 		local _, hum, myRoot = getChar()
@@ -534,7 +582,7 @@ local DaHood = (function()
 				end
 			end
 		elseif DS.OrbitEnabled and DS.Target then
-			local obj = DS.Target
+			local obj   = DS.Target
 			if not obj or not obj.Parent then DS.Target = nil return end
 			local tChar = obj:IsA("Player") and obj.Character or obj
 			local tRoot = tChar and tChar:FindFirstChild("HumanoidRootPart")
@@ -587,6 +635,25 @@ local DaHood = (function()
 				end
 			end
 		end
+
+		-- Telekinesis: pull nearest enemy toward local player
+		if DS.TelekinesisEnabled and tkHolding then
+			local nearest = findNearest()
+			if nearest then
+				local tChar = nearest.Character
+				local tRoot = tChar and tChar:FindFirstChild("HumanoidRootPart")
+				if tRoot then
+					pcall(function()
+						local dir  = (myRoot.Position - tRoot.Position)
+						local dist = dir.Magnitude
+						if dist > 2 then
+							local step = math.min(DS.TelekinesisForce * dt, dist - 2)
+							tRoot.CFrame = tRoot.CFrame + dir.Unit * step
+						end
+					end)
+				end
+			end
+		end
 	end)
 
 	UserInputService.InputBegan:Connect(function(input, gp)
@@ -597,6 +664,11 @@ local DaHood = (function()
 		if inputMatches(input, DS.NoRagdollBind)   then DS.NoRagdollEnabled   = not DS.NoRagdollEnabled   changed:Fire() end
 		if inputMatches(input, DS.AutoReviveBind)  then DS.AutoReviveEnabled  = not DS.AutoReviveEnabled  changed:Fire() end
 		if inputMatches(input, DS.AutoBagBind)     then DS.AutoBagEnabled     = not DS.AutoBagEnabled     changed:Fire() end
+		if inputMatches(input, DS.TelekinesisBind) then
+			DS.TelekinesisEnabled = not DS.TelekinesisEnabled
+			tkHolding = DS.TelekinesisEnabled
+			changed:Fire()
+		end
 		if inputMatches(input, DS.JailEscapeBind)  then
 			local _, _, root = getChar()
 			if root then
@@ -610,13 +682,19 @@ local DaHood = (function()
 		end
 	end)
 
+	UserInputService.InputEnded:Connect(function(input)
+		if inputMatches(input, DS.TelekinesisBind) then
+			tkHolding = false
+		end
+	end)
+
 	return M
 end)()
 _G.Tob2DaHood = DaHood
 
 -- ── Movement Module ───────────────────────────────────────
 local Movement = (function()
-	local M  = {}
+	local M = {}
 	M.Settings = {
 		WalkSpeedOn=false, WalkSpeed=32, WalkSpeedBind=Enum.KeyCode.G, WalkSpeedBindAmount=100,
 		JumpPowerOn=false, JumpPower=100, InfiniteJump=false,
@@ -629,23 +707,23 @@ local Movement = (function()
 	local changed = Instance.new("BindableEvent")
 	M.Changed     = changed.Event
 
-	local original       = {}
-	local appliedHum     = nil
-	local flyBody        = nil
-	local flyGyro        = nil
-	local flying         = false
-	local flyVel         = Vector3.zero
-	local noclipParts    = {}
+	local original        = {}
+	local appliedHum      = nil
+	local flyBody         = nil
+	local flyGyro         = nil
+	local flying          = false
+	local flyVel          = Vector3.zero
+	local noclipParts     = {}
 	local originalGravity = nil
-	local originalFOV    = nil
-	local walkBound      = false
+	local originalFOV     = nil
+	local walkBound       = false
 
 	local function stopFly(hum)
 		if flyBody then flyBody:Destroy() flyBody = nil end
 		if flyGyro then flyGyro:Destroy() flyGyro = nil end
 		if flying then
-			flying   = false
-			flyVel   = Vector3.zero
+			flying = false
+			flyVel = Vector3.zero
 			if hum then hum.PlatformStand = false end
 		end
 	end
@@ -672,7 +750,7 @@ local Movement = (function()
 				if original.WalkSpeed == nil then original.WalkSpeed = hum.WalkSpeed end
 				hum.WalkSpeed = walkBound and S.WalkSpeedBindAmount or S.WalkSpeed
 			elseif original.WalkSpeed ~= nil then
-				hum.WalkSpeed = original.WalkSpeed
+				hum.WalkSpeed      = original.WalkSpeed
 				original.WalkSpeed = nil
 			end
 
@@ -684,8 +762,8 @@ local Movement = (function()
 				hum.UseJumpPower = true
 				hum.JumpPower    = S.JumpPower
 			elseif original.JumpPower ~= nil then
-				hum.JumpPower    = original.JumpPower
-				hum.UseJumpPower = original.UseJumpPower
+				hum.JumpPower     = original.JumpPower
+				hum.UseJumpPower  = original.UseJumpPower
 				original.JumpPower = nil
 			end
 		end
@@ -804,22 +882,13 @@ local RapidFire = (function()
 	local changed = Instance.new("BindableEvent")
 	M.Changed     = changed.Event
 
-	local function sync()
-		Aim.SetRapidFire(RS.Enabled, RS.FireRate)
-	end
-
 	UserInputService.InputBegan:Connect(function(input, processed)
 		if processed or Aim.IsCapturing() then return end
 		if input.KeyCode == RS.Bind then
 			RS.Enabled = not RS.Enabled
-			sync()
+			Aim.SetRapidFire(RS.Enabled, RS.FireRate)
 			changed:Fire()
 		end
-	end)
-
-	-- keep rate synced if changed via UI slider
-	RunService.Heartbeat:Connect(function()
-		if RS.Enabled then Aim.SetRapidFire(true, RS.FireRate) end
 	end)
 
 	return M
@@ -828,7 +897,7 @@ _G.Tob2RapidFire = RapidFire
 
 -- ── ESP Module ────────────────────────────────────────────
 local ESP = (function()
-	local M  = {}
+	local M = {}
 	M.Settings = {
 		Enabled=false, Bind=Enum.KeyCode.X,
 		Box=true, Name=true, Distance=true, Health=true,
@@ -836,9 +905,9 @@ local ESP = (function()
 		TeamCheck=false, TeamColors=false,
 		MaxDistance=1000, Color="Purple",
 	}
-	local S       = M.Settings
-	M.ColorNames  = { "Purple","Red","Green","Blue","White","Yellow","Orange" }
-	local COLORS  = {
+	local S      = M.Settings
+	M.ColorNames = { "Purple","Red","Green","Blue","White","Yellow","Orange" }
+	local COLORS = {
 		Purple=Color3.fromRGB(124,92,255), Red=Color3.fromRGB(235,64,72),
 		Green=Color3.fromRGB(80,220,140),  Blue=Color3.fromRGB(70,150,255),
 		White=Color3.fromRGB(240,240,245), Yellow=Color3.fromRGB(250,215,70),
@@ -887,11 +956,11 @@ local ESP = (function()
 		o.NameLabel     = makeLabel()
 		o.DistanceLabel = makeLabel()
 		o.HealthBack = Instance.new("Frame")
-		o.HealthBack.BackgroundColor3    = Color3.fromRGB(0,0,0)
-		o.HealthBack.BackgroundTransparency = 0.35
-		o.HealthBack.BorderSizePixel     = 0
-		o.HealthBack.Visible             = false
-		o.HealthBack.Parent              = espGui
+		o.HealthBack.BackgroundColor3        = Color3.fromRGB(0,0,0)
+		o.HealthBack.BackgroundTransparency  = 0.35
+		o.HealthBack.BorderSizePixel         = 0
+		o.HealthBack.Visible                 = false
+		o.HealthBack.Parent                  = espGui
 		o.HealthFill = Instance.new("Frame")
 		o.HealthFill.AnchorPoint    = Vector2.new(0, 1)
 		o.HealthFill.Position       = UDim2.fromScale(0, 1)
@@ -899,10 +968,10 @@ local ESP = (function()
 		o.HealthFill.BorderSizePixel = 0
 		o.HealthFill.Parent         = o.HealthBack
 		o.Tracer = Instance.new("Frame")
-		o.Tracer.AnchorPoint    = Vector2.new(0.5, 0.5)
+		o.Tracer.AnchorPoint     = Vector2.new(0.5, 0.5)
 		o.Tracer.BorderSizePixel = 0
-		o.Tracer.Visible        = false
-		o.Tracer.Parent         = espGui
+		o.Tracer.Visible         = false
+		o.Tracer.Parent          = espGui
 		o.Highlight = Instance.new("Highlight")
 		o.Highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
 		o.Highlight.Enabled   = false
@@ -919,12 +988,12 @@ local ESP = (function()
 	end
 
 	local function hideAll(o)
-		o.Box.Visible         = false
-		o.NameLabel.Visible   = false
+		o.Box.Visible           = false
+		o.NameLabel.Visible     = false
 		o.DistanceLabel.Visible = false
-		o.HealthBack.Visible  = false
-		o.Tracer.Visible      = false
-		o.Highlight.Enabled   = false
+		o.HealthBack.Visible    = false
+		o.Tracer.Visible        = false
+		o.Highlight.Enabled     = false
 	end
 
 	RunService:BindToRenderStep("ESPUpdate", Enum.RenderPriority.Camera.Value + 2, function()
@@ -946,11 +1015,11 @@ local ESP = (function()
 			if not show then hideAll(o) continue end
 
 			local color = S.TeamColors and plr.TeamColor.Color or COLORS[S.Color]
-			local hl = o.Highlight
+			local hl    = o.Highlight
 			if hl.Adornee ~= char then hl.Adornee = char end
-			hl.Enabled          = S.Outline or S.Fill
-			hl.FillColor        = color
-			hl.OutlineColor     = color
+			hl.Enabled             = S.Outline or S.Fill
+			hl.FillColor           = color
+			hl.OutlineColor        = color
 			hl.FillTransparency    = S.Fill    and 0.6 or 1
 			hl.OutlineTransparency = S.Outline and 0   or 1
 
@@ -1002,9 +1071,9 @@ local ESP = (function()
 				local to    = Vector2.new(cx, y + height)
 				local delta = to - from
 				local mid   = (from + to) / 2
-				o.Tracer.Size            = UDim2.fromOffset(delta.Magnitude, 1.5)
-				o.Tracer.Position        = UDim2.fromOffset(mid.X, mid.Y)
-				o.Tracer.Rotation        = math.deg(math.atan2(delta.Y, delta.X))
+				o.Tracer.Size             = UDim2.fromOffset(delta.Magnitude, 1.5)
+				o.Tracer.Position         = UDim2.fromOffset(mid.X, mid.Y)
+				o.Tracer.Rotation         = math.deg(math.atan2(delta.Y, delta.X))
 				o.Tracer.BackgroundColor3 = color
 			end
 		end
@@ -1030,7 +1099,7 @@ _G.Tob2ESP = ESP
 
 -- ── Users Module ──────────────────────────────────────────
 local Users = (function()
-	local M  = {}
+	local M = {}
 	M.Target     = nil
 	M.Spectating = false
 	M.Following  = false
@@ -1143,8 +1212,8 @@ local Users = (function()
 	RunService.Heartbeat:Connect(function()
 		local obj = M.Target
 		if M.Spectating then
-			local cam = Workspace.CurrentCamera
-			local _, hum = targetParts(obj)
+			local cam     = Workspace.CurrentCamera
+			local _, hum  = targetParts(obj)
 			if not isValid(obj) or not hum then
 				M.SetSpectating(false)
 			elseif cam and cam.CameraSubject ~= hum then
@@ -1171,13 +1240,13 @@ local Config = (function()
 	local M = {}
 	M.Slots    = {}
 	M.Sections = {
-		CamLock    = Aim.Settings.CamLock,
-		SilentAim  = Aim.Settings.SilentAim,
-		ESP        = ESP.Settings,
-		Movement   = Movement.Settings,
-		RapidFire  = RapidFire.Settings,
-		DaHood     = DaHood.Settings,
-		Menu       = MenuSettings,
+		CamLock   = Aim.Settings.CamLock,
+		SilentAim = Aim.Settings.SilentAim,
+		ESP       = ESP.Settings,
+		Movement  = Movement.Settings,
+		RapidFire = RapidFire.Settings,
+		DaHood    = DaHood.Settings,
+		Menu      = MenuSettings,
 	}
 
 	local function encode(v)
@@ -1269,24 +1338,23 @@ _G.Tob2Config = Config
 if AUTOLOAD_CONFIG ~= "" then Config.Import(AUTOLOAD_CONFIG) end
 
 -- ── Pass globals to UI ────────────────────────────────────
-_G.Tob2MenuSettings    = MenuSettings
-_G.Tob2THEME           = THEME
-_G.Tob2Players         = Players
-_G.Tob2TweenService    = TweenService
-_G.Tob2UserInputService= UserInputService
-_G.Tob2RunService      = RunService
-_G.Tob2Workspace       = Workspace
-_G.Tob2HttpService     = HttpService
-_G.Tob2player          = player
-_G.Tob2playerGui       = playerGui
-_G.Tob2inputMatches    = inputMatches
+_G.Tob2MenuSettings     = MenuSettings
+_G.Tob2THEME            = THEME
+_G.Tob2Players          = Players
+_G.Tob2TweenService     = TweenService
+_G.Tob2UserInputService = UserInputService
+_G.Tob2RunService       = RunService
+_G.Tob2Workspace        = Workspace
+_G.Tob2HttpService      = HttpService
+_G.Tob2player           = player
+_G.Tob2playerGui        = playerGui
+_G.Tob2inputMatches     = inputMatches
 
 -- ── Load UI ───────────────────────────────────────────────
 local _ls = loadstring
-local uiOk, uiErr = pcall(function()
+pcall(function()
 	_ls(game:HttpGet("https://raw.githubusercontent.com/Tob2Scripts/DaHoodTob2/main/DaHoodUI.Lua"))()
 end)
-if not uiOk then showError("UI load failed: " .. tostring(uiErr)) end
 
 end)
 if not ok then showError(err) end
