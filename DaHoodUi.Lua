@@ -141,15 +141,14 @@ local DS=DaHood.Settings
 
 local currentPage=nil
 local function switchTab(name)
-	if currentPage then
-		local prev=currentPage
-		tween(pageFrames[prev],0.15,{GroupTransparency=1})
-		task.delay(0.15,function() if pageFrames[prev] then pageFrames[prev].Visible=false end end)
+	if currentPage and currentPage~=name then
+		pageFrames[currentPage].Visible=false
+		pageFrames[currentPage].GroupTransparency=1
 	end
 	currentPage=name
 	local page=pageFrames[name]
-	page.Visible=true page.GroupTransparency=1
-	tween(page,0.15,{GroupTransparency=0})
+	page.GroupTransparency=0
+	page.Visible=true
 	local idx=table.find(TAB_NAMES,name) or 1
 	tween(indicator,0.2,{Position=UDim2.new((idx-1)/#TAB_NAMES,12,1,-2)})
 	for n,btn in pairs(tabButtons) do
