@@ -1,4 +1,6 @@
-
+-- ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+-- /Tob2 Da Hood Script  |  Core
+-- ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
 
 local function showError(msg)
 	warn("[Tob2] " .. tostring(msg))
@@ -237,7 +239,7 @@ local Aim = (function()
 		local temp = Instance.new("RemoteEvent")
 		local method = temp.FireServer
 		temp:Destroy()
-		originalFireServer = hookfunction(method, newcclosure(function(self, ...)
+		local hooked = hookfunction(method, newcclosure(function(self, ...)
 			local args = { ... }
 			-- silent aim redirect
 			if SA.Enabled and math.random(1, 100) <= SA.HitChance then
@@ -250,8 +252,9 @@ local Aim = (function()
 			if rfEnabled then
 				rfShots[tostring(self)] = { remote = self, args = table.pack(table.unpack(args)), last = tick() }
 			end
-			return originalFireServer(self, table.unpack(args))
+			return hooked(self, table.unpack(args))
 		end))
+		originalFireServer = hooked
 	end)
 
 	-- rapid fire loop uses originalFireServer to avoid re-hooking
