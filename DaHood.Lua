@@ -1,5 +1,5 @@
 -- ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
--- /Tob2 Da Hood Script  |  Core
+-- /Tob2 Des Hood Script  |  Core
 -- ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
 
 local function showError(msg)
@@ -235,6 +235,10 @@ local Aim = (function()
 		local method = temp.FireServer
 		temp:Destroy()
 		fireServerOriginal = hookfunction(method, newcclosure(function(self, ...)
+			-- Issue A: guard against hookfunction failure (fireServerOriginal nil = hook didn't set up)
+			-- If hookfunction failed, fireServerOriginal is nil and we cannot call the original.
+			-- The game's own code will still fire the shot; we just skip redirection silently.
+			if not fireServerOriginal then return end
 			local args = { ... }
 			-- silent aim
 			if SA.Enabled and math.random(1, 100) <= SA.HitChance then
@@ -442,7 +446,7 @@ local Aim = (function()
 end)()
 _G.Tob2Aim = Aim
 
--- ── Da Hood Module ────────────────────────────────────────
+-- ── Da Hood Module (Des Hood) ─────────────────────────────
 local DaHood = (function()
 	local M = {}
 	M.Settings = {
@@ -503,7 +507,9 @@ local DaHood = (function()
 	end
 
 	-- Telekinesis state
-	local tkHolding = false
+	-- Issue D fix: removed tkHolding variable. The Heartbeat loop checks DS.TelekinesisEnabled
+	-- directly. The old code set tkHolding=true on InputBegan then immediately false on InputEnded
+	-- (same key release), so telekinesis ran for zero frames. Using the toggle flag alone is correct.
 
 	-- Speed Boost on Kill: hook enemy Humanoid.Died for each player
 	local function hookSpeedBoost(other)
@@ -541,34 +547,36 @@ local DaHood = (function()
 		local _, hum, myRoot = getChar()
 		if not myRoot or not hum or hum.Health <= 0 then return end
 
-		-- Infinite ammo: find Ammo IntValue/NumberValue in all tools
+		-- Infinite ammo: keep Ammo at its maximum for all tools.
+		-- Issue C: use MaxAmmo child as the ceiling if it exists; avoids over-filling
+		-- pistols (7 rounds max) which could trigger server-side validation errors.
 		if DS.InfiniteAmmoEnabled then
 			local char = player.Character
 			if char then
-				for _, tool in ipairs(char:GetChildren()) do
-					if tool:IsA("Tool") then
-						-- try direct Ammo child
-						local ammo = tool:FindFirstChild("Ammo")
-						if ammo and (ammo:IsA("IntValue") or ammo:IsA("NumberValue")) then
-							if ammo.Value < 30 then ammo.Value = 30 end
+				local function refillTool(tool)
+					if not tool:IsA("Tool") then return end
+					local function refillAmmo(ammo)
+						if not ammo then return end
+						if not (ammo:IsA("IntValue") or ammo:IsA("NumberValue")) then return end
+						local maxObj = tool:FindFirstChild("MaxAmmo")
+						local target = (maxObj and (maxObj:IsA("IntValue") or maxObj:IsA("NumberValue")) and maxObj.Value > 0)
+							and maxObj.Value or 9999
+						if ammo.Value < target then
+							ammo.Value = target
 						end
-						-- also check one level deeper (some games nest it)
-						for _, v in ipairs(tool:GetChildren()) do
-							if (v:IsA("IntValue") or v:IsA("NumberValue")) and v.Name == "Ammo" then
-								if v.Value < 30 then v.Value = 30 end
-							end
+					end
+					-- direct Ammo child
+					refillAmmo(tool:FindFirstChild("Ammo"))
+					-- one level deeper (some games nest under a sub-folder)
+					for _, v in ipairs(tool:GetChildren()) do
+						if (v:IsA("IntValue") or v:IsA("NumberValue")) and v.Name == "Ammo" then
+							refillAmmo(v)
 						end
 					end
 				end
+				for _, tool in ipairs(char:GetChildren()) do refillTool(tool) end
 				-- also check Backpack so reloading from backpack keeps ammo
-				for _, tool in ipairs(player.Backpack:GetChildren()) do
-					if tool:IsA("Tool") then
-						local ammo = tool:FindFirstChild("Ammo")
-						if ammo and (ammo:IsA("IntValue") or ammo:IsA("NumberValue")) then
-							if ammo.Value < 30 then ammo.Value = 30 end
-						end
-					end
-				end
+				for _, tool in ipairs(player.Backpack:GetChildren()) do refillTool(tool) end
 			end
 		end
 
@@ -670,7 +678,7 @@ local DaHood = (function()
 		end
 
 		-- Telekinesis: pull nearest enemy toward local player
-		if DS.TelekinesisEnabled and tkHolding then
+		if DS.TelekinesisEnabled then
 			local nearest = findNearest()
 			if nearest then
 				local tChar = nearest.Character
@@ -699,7 +707,6 @@ local DaHood = (function()
 		if inputMatches(input, DS.AutoBagBind)     then DS.AutoBagEnabled     = not DS.AutoBagEnabled     changed:Fire() end
 		if inputMatches(input, DS.TelekinesisBind) then
 			DS.TelekinesisEnabled = not DS.TelekinesisEnabled
-			tkHolding = DS.TelekinesisEnabled
 			changed:Fire()
 		end
 		if inputMatches(input, DS.JailEscapeBind)  then
@@ -716,9 +723,8 @@ local DaHood = (function()
 	end)
 
 	UserInputService.InputEnded:Connect(function(input)
-		if inputMatches(input, DS.TelekinesisBind) then
-			tkHolding = false
-		end
+		-- Issue D fix: removed tkHolding reset here. Telekinesis is now a pure toggle
+		-- controlled by DS.TelekinesisEnabled; InputEnded no longer needs to clear anything.
 	end)
 
 	return M
