@@ -1,13 +1,20 @@
--- ╔══════════════════════════════════════════════════════╗
--- ║  /Tob2  Da Hood Edition  —  FIXED INIT ORDER        ║
--- ║  Execute: loadstring(game:HttpGet("RAW_URL"))()      ║
--- ╚══════════════════════════════════════════════════════╝
--- Diagnostic wrapper: prints the line of any top-level error
+-- ══════════════════════════════════════════════════════
+-- ERROR REPORTER  (shown in-game if the script fails to load)
+-- ══════════════════════════════════════════════════════
+local function showError(msg)
+	pcall(function()
+		local pg = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
+		local old = pg:FindFirstChild("Tob2Error") if old then old:Destroy() end
+		local eg = Instance.new("ScreenGui") eg.Name="Tob2Error" eg.ResetOnSpawn=false eg.DisplayOrder=999 eg.IgnoreGuiInset=true eg.Parent=pg
+		local bg = Instance.new("Frame") bg.AnchorPoint=Vector2.new(0.5,0) bg.Position=UDim2.new(0.5,0,0,12) bg.Size=UDim2.new(0.9,0,0,0) bg.AutomaticSize=Enum.AutomaticSize.Y bg.BackgroundColor3=Color3.fromRGB(40,10,10) bg.BorderSizePixel=0 bg.Parent=eg
+		local c=Instance.new("UICorner") c.CornerRadius=UDim.new(0,8) c.Parent=bg
+		local lbl=Instance.new("TextLabel") lbl.Size=UDim2.new(1,-16,0,0) lbl.Position=UDim2.fromOffset(8,8) lbl.AutomaticSize=Enum.AutomaticSize.Y lbl.BackgroundTransparency=1 lbl.Font=Enum.Font.GothamMedium lbl.TextSize=13 lbl.TextColor3=Color3.fromRGB(255,100,100) lbl.TextXAlignment=Enum.TextXAlignment.Left lbl.TextWrapped=true lbl.Text="[Tob2] Load error:\n"..tostring(msg) lbl.Parent=bg
+	end)
+	warn("[Tob2] Load error: "..tostring(msg))
+end
+
 local _ok, _err = pcall(function()
 
--- ══════════════════════════════════════════════════════
--- SECTION 1: SERVICES & SHARED GLOBALS
--- ══════════════════════════════════════════════════════
 local Players          = game:GetService("Players")
 local TweenService     = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
@@ -20,6 +27,20 @@ local VU = pcall(function() return game:GetService("VirtualUser") end)
 	and game:GetService("VirtualUser") or nil
 local AUTOLOAD_CONFIG = ""
 local MenuSettings = { Bind = Enum.KeyCode.RightShift }
+
+-- ══════════════════════════════════════════════════════
+-- SECTION 1: THEME  (must be defined before any UI code)
+-- ══════════════════════════════════════════════════════
+local THEME = {
+	Background = Color3.fromRGB(18, 18, 24),
+	TopBar     = Color3.fromRGB(22, 22, 30),
+	Card       = Color3.fromRGB(26, 26, 34),
+	Stroke     = Color3.fromRGB(45, 45, 58),
+	Accent     = Color3.fromRGB(124, 92, 255),
+	Text       = Color3.fromRGB(240, 240, 245),
+	SubText    = Color3.fromRGB(140, 140, 160),
+	Danger     = Color3.fromRGB(235, 64, 72),
+}
 
 local function inputMatches(input, bind)
 	if not bind then return false end
@@ -371,67 +392,6 @@ local function newHolder()rowOrder+=1 local h=Instance.new("Frame")h.LayoutOrder
 local function clearHolder(h)for _,c in ipairs(h:GetChildren())do if c:IsA("GuiObject")then c:Destroy()end end end
 local function addListRow(h,text,selected,onClick)local btn=Instance.new("TextButton")btn.LayoutOrder=#h:GetChildren()btn.Size=UDim2.new(1,0,0,30)btn.BackgroundColor3=THEME.Card btn.AutoButtonColor=false btn.Font=FONT btn.TextSize=13 btn.TextXAlignment=Enum.TextXAlignment.Left btn.TextColor3=selected and THEME.Accent or THEME.Text btn.Text=text btn.BorderSizePixel=0 btn.Parent=h corner(btn,8)stroke(btn,selected and THEME.Accent or THEME.Stroke,1)local pad=Instance.new("UIPadding")pad.PaddingLeft=UDim.new(0,12)pad.Parent=btn btn.MouseEnter:Connect(function()tween(btn,0.15,{BackgroundColor3=Color3.fromRGB(31,31,40)})end)btn.MouseLeave:Connect(function()tween(btn,0.15,{BackgroundColor3=THEME.Card})end)btn.Activated:Connect(onClick)end
 local function percent(v)return v.."%"end local function pixels(v)return v.." px"end local function secs(v)return string.format("%.2fs",v)end local function studs(v)return v.." studs"end local function radsec(v)return string.format("%.1f",v).." r/s"end
-local CL=Aim.Settings.CamLock local SA=Aim.Settings.SilentAim local S=ESP.Settings local MS=Movement.Settings local RF=RapidFire.Settings local DS=DaHood.Settings
-local Config=(function()
-	local Config={} Config.Slots={}
-	Config.Sections={CamLock=Aim.Settings.CamLock,SilentAim=Aim.Settings.SilentAim,ESP=ESP.Settings,Movement=Movement.Settings,RapidFire=RapidFire.Settings,DaHood=DaHood.Settings,Menu=MenuSettings}
-	local function encode(v)
-		local k=typeof(v)
-		if k=="boolean"or k=="string"then return v end
-		if k=="number"then if v==v and v~=math.huge and v~=-math.huge then return v end return nil end
-		if k=="EnumItem"then return{Enum=tostring(v.EnumType),Name=v.Name}end return nil
-	end
-	local function decode(saved,current,key)
-		if type(saved)=="table"then
-			if saved.Enum and saved.Name then
-				local ok,et=pcall(function()return Enum[saved.Enum]end)
-				if ok and et then local ok2,item=pcall(function()return et[saved.Name]end)if ok2 and item then return item end end
-			end return nil
-		end
-		if key:sub(-4)=="Bind"and saved==false then return false end
-		if type(saved)==type(current)then return saved end return nil
-	end
-	local function capture()
-		local data={}
-		for sn,section in pairs(Config.Sections)do
-			local out={}
-			for key,value in pairs(section)do local e=encode(value)if e~=nil then out[key]=e end end
-			data[sn]=out
-		end
-		return data
-	end
-	local function apply(data)
-		for sn,saved in pairs(data)do
-			local section=Config.Sections[sn]
-			if section and type(saved)=="table"then
-				for key,sv in pairs(saved)do
-					local current=section[key]
-					if current~=nil and type(current)~="function"and type(current)~="table"then
-						local v=decode(sv,current,key)
-						if section==MenuSettings and(not v or v.EnumType~=Enum.KeyCode)then v=nil end
-						if v~=nil then section[key]=v end
-					end
-				end
-			end
-		end
-	end
-	Config.Defaults=capture()
-	function Config.Export()local ok,r=pcall(function()return HttpService:JSONEncode({v=1,d=capture()})end)return ok and r or""end
-	function Config.Import(text)
-		if type(text)~="string"or text:match("^%s*$")then return false,"Paste a config first"end
-		local ok,decoded=pcall(function()return HttpService:JSONDecode(text)end)
-		if not ok or type(decoded)~="table"or type(decoded.d)~="table"then return false,"Invalid config"end
-		apply(decoded.d)return true,"Config loaded"
-	end
-	function Config.Save(name)Config.Slots[name]=capture()end
-	function Config.Load(name)local data=Config.Slots[name]if not data then return false end apply(data)return true end
-	function Config.Delete(name)Config.Slots[name]=nil end
-	function Config.Names()local names={}for name in pairs(Config.Slots)do table.insert(names,name)end table.sort(names)return names end
-	function Config.ResetAll()apply(Config.Defaults)end
-	return Config
-end)()
-_G.Tob2Config=Config
-if AUTOLOAD_CONFIG~=""then Config.Import(AUTOLOAD_CONFIG)end
 local Users=(function()
 	local Users={} Users.Target=nil Users.Spectating=false Users.Following=false
 	local changedEvent=Instance.new("BindableEvent")Users.Changed=changedEvent.Event
@@ -824,199 +784,75 @@ local ESP=(function()
 	return ESP
 end)()
 _G.Tob2ESP=ESP
-local Aim=(function()
-	local Aim={}
-	Aim.Settings={
-		CamLock={Enabled=false,Bind=Enum.KeyCode.Q,Mode="Toggle",TargetPart="Head",Smoothing=0,FOV=math.huge,TeamCheck=false,WallCheck=true,Sticky=true,Prediction=0.1,AutoRelock=true},
-		SilentAim={Enabled=false,Bind=Enum.KeyCode.Z,TargetPart="Head",FOV=250,ShowFOV=true,TeamCheck=false,WallCheck=false,HitChance=100,Prediction=0.1,TestTracer=false},
-	}
-	local CL=Aim.Settings.CamLock local SA=Aim.Settings.SilentAim
-	local changedEvent=Instance.new("BindableEvent") Aim.Changed=changedEvent.Event
-	local function getPart(char,name)
-		if name=="Head" then return char:FindFirstChild("Head")or char:FindFirstChild("HumanoidRootPart")
-		elseif name=="Torso" then return char:FindFirstChild("UpperTorso")or char:FindFirstChild("Torso")or char:FindFirstChild("HumanoidRootPart")end
-		return char:FindFirstChild("HumanoidRootPart")
+
+-- ══════════════════════════════════════════════════════
+-- MODULE ALIASES  (all modules now defined; safe to alias)
+-- ══════════════════════════════════════════════════════
+local CL=Aim.Settings.CamLock local SA=Aim.Settings.SilentAim local S=ESP.Settings local MS=Movement.Settings local RF=RapidFire.Settings local DS=DaHood.Settings
+
+-- ══════════════════════════════════════════════════════
+-- CONFIG  (depends on all module Settings tables)
+-- ══════════════════════════════════════════════════════
+local Config=(function()
+	local Config={} Config.Slots={}
+	Config.Sections={CamLock=Aim.Settings.CamLock,SilentAim=Aim.Settings.SilentAim,ESP=ESP.Settings,Movement=Movement.Settings,RapidFire=RapidFire.Settings,DaHood=DaHood.Settings,Menu=MenuSettings}
+	local function encode(v)
+		local k=typeof(v)
+		if k=="boolean"or k=="string"then return v end
+		if k=="number"then if v==v and v~=math.huge and v~=-math.huge then return v end return nil end
+		if k=="EnumItem"then return{Enum=tostring(v.EnumType),Name=v.Name}end return nil
 	end
-	local function isEnemy(other,teamCheck)
-		if not teamCheck then return true end
-		local ok,same=pcall(function()return player.Team~=nil and other.Team==player.Team end)
-		if ok and same then return false end return true
-	end
-	local rayParams=RaycastParams.new() rayParams.FilterType=Enum.RaycastFilterType.Exclude rayParams.IgnoreWater=true
-	local function isVisible(part,char)
-		local cam=Workspace.CurrentCamera if not cam then return false end
-		local myChar=player.Character rayParams.FilterDescendantsInstances=myChar and{myChar}or{}
-		local result=Workspace:Raycast(cam.CFrame.Position,part.Position-cam.CFrame.Position,rayParams)
-		if not result then return true end return result.Instance:IsDescendantOf(char)
-	end
-	local function getMousePos()
-		local cam=Workspace.CurrentCamera
-		if cam and UserInputService.MouseBehavior==Enum.MouseBehavior.LockCenter then return cam.ViewportSize/2 end
-		return UserInputService:GetMouseLocation()
-	end
-	local function findTarget(cfg,excludeChar)
-		local cam=Workspace.CurrentCamera if not cam then return nil end
-		local mousePos=getMousePos() local best,bestDist=nil,cfg.FOV
-		local function consider(char)
-			if char==excludeChar then return end
-			local hum=char and char:FindFirstChildOfClass("Humanoid")
-			local part=char and getPart(char,cfg.TargetPart)
-			if not(hum and hum.Health>0 and part)then return end
-			local screen,onScreen=cam:WorldToViewportPoint(part.Position)
-			if not onScreen then return end
-			local dist=(Vector2.new(screen.X,screen.Y)-mousePos).Magnitude
-			if dist<bestDist and(not cfg.WallCheck or isVisible(part,char))then best,bestDist=part,dist end
+	local function decode(saved,current,key)
+		if type(saved)=="table"then
+			if saved.Enum and saved.Name then
+				local ok,et=pcall(function()return Enum[saved.Enum]end)
+				if ok and et then local ok2,item=pcall(function()return et[saved.Name]end)if ok2 and item then return item end end
+			end return nil
 		end
-		for _,other in ipairs(Players:GetPlayers())do if other~=player and isEnemy(other,cfg.TeamCheck)then consider(other.Character)end end
-		return best
+		if key:sub(-4)=="Bind"and saved==false then return false end
+		if type(saved)==type(current)then return saved end return nil
 	end
-	local function isAlive(part)
-		if not part or not part.Parent then return false end
-		local hum=part.Parent:FindFirstChildOfClass("Humanoid")
-		return hum~=nil and hum.Health>0
+	local function capture()
+		local data={}
+		for sn,section in pairs(Config.Sections)do
+			local out={}
+			for key,value in pairs(section)do local e=encode(value)if e~=nil then out[key]=e end end
+			data[sn]=out
+		end
+		return data
 	end
-	local function aimPos(part,cfg)
-		local vel=Vector3.zero pcall(function()vel=part.AssemblyLinearVelocity end)
-		return part.Position+vel*cfg.Prediction
-	end
-	function Aim.GetSilentTarget()if not SA.Enabled then return nil end if math.random(1,100)>SA.HitChance then return nil end return findTarget(SA)end
-	function Aim.GetAimPoint(def)local p=Aim.GetSilentTarget()return p and aimPos(p,SA)or def end
-	function Aim.RedirectShot(origin,dir)
-		local p=Aim.GetSilentTarget()if not p then return dir end
-		local to=aimPos(p,SA)-origin if to.Magnitude<1e-3 then return dir end return to.Unit*dir.Magnitude
-	end
-	local function isDir(v)if typeof(v)~="Vector3"then return false end local m=v.Magnitude return m>0.01 and m<5 end
-	local function isPos(v)if typeof(v)~="Vector3"then return false end return v.Magnitude>=5 end
-	local rfShots={} local rfEnabled=false local rfRate=0.05
-	pcall(function()
-		local mt=getrawmetatable(game) local old=mt.__namecall
-		setreadonly(mt,false)
-		mt.__namecall=newcclosure(function(self,...)
-			local method=getnamecallmethod()
-			if method=="FireServer" and self:IsA("RemoteEvent")then
-				local args={...}
-				if SA.Enabled and math.random(1,100)<=SA.HitChance then
-					local target=findTarget(SA)
-					if target then
-						local tp=aimPos(target,SA) local hasDir=false
-						for _,a in ipairs(args)do if isDir(a)then hasDir=true break end end
-						for i,arg in ipairs(args)do
-							if isDir(arg)then
-								local origin=Vector3.zero
-								for j=1,i-1 do if isPos(args[j])then origin=args[j]break end end
-								local to=tp-origin if to.Magnitude>0.01 then args[i]=to.Unit*arg.Magnitude end
-							elseif not hasDir and typeof(arg)=="Vector3" and isPos(arg)then args[i]=tp end
-						end
+	local function apply(data)
+		for sn,saved in pairs(data)do
+			local section=Config.Sections[sn]
+			if section and type(saved)=="table"then
+				for key,sv in pairs(saved)do
+					local current=section[key]
+					if current~=nil and type(current)~="function"and type(current)~="table"then
+						local v=decode(sv,current,key)
+						if section==MenuSettings and(not v or v.EnumType~=Enum.KeyCode)then v=nil end
+						if v~=nil then section[key]=v end
 					end
 				end
-				if rfEnabled then
-					local key=tostring(self)
-					rfShots[key]={remote=self,args={table.unpack(args)},last=tick()}
-				end
-				return old(self,table.unpack(args))
-			end
-			return old(self,...)
-		end)
-		setreadonly(mt,true)
-	end)
-	RunService.Heartbeat:Connect(function()
-		if not rfEnabled then if next(rfShots)then table.clear(rfShots)end return end
-		local now=tick()
-		for _,data in pairs(rfShots)do
-			if now-data.last>=rfRate then
-				data.last=now
-				pcall(function()
-					local args={table.unpack(data.args)}
-					if SA.Enabled then
-						local t=findTarget(SA)
-						if t then
-							local tp=aimPos(t,SA)
-							for i,arg in ipairs(args)do
-								if isDir(arg)then
-									local origin=Vector3.zero
-									for j=1,i-1 do if isPos(args[j])then origin=args[j]break end end
-									local to=tp-origin if to.Magnitude>0.01 then args[i]=to.Unit*arg.Magnitude end
-								end
-							end
-						end
-					end
-					data.remote:FireServer(table.unpack(args))
-				end)
 			end
 		end
-	end)
-	function Aim.SetRapidFireHook(en,rate)rfEnabled=en if rate then rfRate=rate end end
-	local captureCallback=nil local capturedThisFrame=false local holding=false
-	local lockedTarget=nil local lockedDiedConn=nil
-	local function clearLock()
-		if lockedDiedConn then lockedDiedConn:Disconnect()lockedDiedConn=nil end lockedTarget=nil
 	end
-	local function onTargetDied()
-		clearLock()
-		if not CL.AutoRelock then CL.Enabled=false changedEvent:Fire("CamLock","Enabled",false)end
+	Config.Defaults=capture()
+	function Config.Export()local ok,r=pcall(function()return HttpService:JSONEncode({v=1,d=capture()})end)return ok and r or""end
+	function Config.Import(text)
+		if type(text)~="string"or text:match("^%s*$")then return false,"Paste a config first"end
+		local ok,decoded=pcall(function()return HttpService:JSONDecode(text)end)
+		if not ok or type(decoded)~="table"or type(decoded.d)~="table"then return false,"Invalid config"end
+		apply(decoded.d)return true,"Config loaded"
 	end
-	local function lockOnto(part)
-		clearLock()lockedTarget=part
-		local hum=part and part.Parent and part.Parent:FindFirstChildOfClass("Humanoid")
-		if hum then lockedDiedConn=hum.Died:Connect(onTargetDied)end
-	end
-	function Aim.CaptureBind(cb)captureCallback=cb end
-	function Aim.IsCapturing()return captureCallback~=nil or capturedThisFrame end
-	local function matches(input,bind)
-		if not bind then return false end
-		if bind.EnumType==Enum.KeyCode then return input.KeyCode==bind end
-		return input.UserInputType==bind
-	end
-	UserInputService.InputBegan:Connect(function(input,gp)
-		if captureCallback then
-			local cb=captureCallback local result,done=nil,false
-			if input.UserInputType==Enum.UserInputType.Keyboard then
-				done=true
-				if input.KeyCode==Enum.KeyCode.Backspace or input.KeyCode==Enum.KeyCode.Delete then result=false
-				elseif input.KeyCode~=Enum.KeyCode.Escape then result=input.KeyCode end
-			elseif input.UserInputType==Enum.UserInputType.MouseButton2 or input.UserInputType==Enum.UserInputType.MouseButton3 then
-				done=true result=input.UserInputType
-			end
-			if done then
-				captureCallback=nil capturedThisFrame=true
-				task.defer(function()capturedThisFrame=false end)
-				cb(result)
-			end
-			return
-		end
-		if gp then return end
-		if matches(input,CL.Bind)then
-			if CL.Mode=="Toggle"then CL.Enabled=not CL.Enabled if not CL.Enabled then clearLock()end changedEvent:Fire("CamLock","Enabled",CL.Enabled)
-			else holding=true end
-		end
-		if matches(input,SA.Bind)then SA.Enabled=not SA.Enabled changedEvent:Fire("SilentAim","Enabled",SA.Enabled)end
-	end)
-	UserInputService.InputEnded:Connect(function(input)
-		if matches(input,CL.Bind)then holding=false if CL.Mode~="Toggle"then clearLock()end end
-	end)
-	local fovGui=playerGui:FindFirstChild("AimFOV")if fovGui then fovGui:Destroy()end
-	fovGui=Instance.new("ScreenGui")fovGui.Name="AimFOV"fovGui.ResetOnSpawn=false fovGui.IgnoreGuiInset=true fovGui.DisplayOrder=50 fovGui.ZIndexBehavior=Enum.ZIndexBehavior.Sibling fovGui.Parent=playerGui
-	local silentCircle=Instance.new("Frame")silentCircle.AnchorPoint=Vector2.new(0.5,0.5)silentCircle.BackgroundTransparency=1 silentCircle.BorderSizePixel=0 silentCircle.Visible=false silentCircle.Parent=fovGui
-	local _sc1=Instance.new("UICorner")_sc1.CornerRadius=UDim.new(0.5,0)_sc1.Parent=silentCircle
-	local _sc2=Instance.new("UIStroke")_sc2.Color=Color3.fromRGB(70,190,255)_sc2.Thickness=1.5 _sc2.Transparency=0.25 _sc2.Parent=silentCircle
-	local lockDot=Instance.new("Frame")lockDot.AnchorPoint=Vector2.new(0.5,0.5)lockDot.Size=UDim2.fromOffset(10,10)lockDot.BackgroundColor3=Color3.fromRGB(124,92,255)lockDot.BorderSizePixel=0 lockDot.Visible=false lockDot.ZIndex=10 lockDot.Parent=fovGui
-	local _ld1=Instance.new("UICorner")_ld1.CornerRadius=UDim.new(0.5,0)_ld1.Parent=lockDot
-	local _ld2=Instance.new("UIStroke")_ld2.Color=Color3.fromRGB(255,255,255)_ld2.Thickness=1 _ld2.Transparency=0.5 _ld2.Parent=lockDot
-	RunService:BindToRenderStep("AimAssist",Enum.RenderPriority.Camera.Value+1,function(dt)
-		silentCircle.Visible=SA.Enabled and SA.ShowFOV
-		if silentCircle.Visible then local m=getMousePos()silentCircle.Position=UDim2.fromOffset(m.X,m.Y)silentCircle.Size=UDim2.fromOffset(SA.FOV*2,SA.FOV*2)end
-		local cam=Workspace.CurrentCamera
-		local active=CL.Enabled and(CL.Mode=="Toggle"or holding)
-		if not active or not cam then lockDot.Visible=false return end
-		if lockedTarget and not isAlive(lockedTarget)then clearLock()end
-		if not lockedTarget then local f=findTarget(CL)if f then lockOnto(f)end end
-		if not lockedTarget then lockDot.Visible=false return end
-		local sp,on=cam:WorldToViewportPoint(lockedTarget.Position)
-		lockDot.Visible=on if on then lockDot.Position=UDim2.fromOffset(sp.X,sp.Y)end
-		local goal=CFrame.lookAt(cam.CFrame.Position,aimPos(lockedTarget,CL))
-		local alpha=CL.Smoothing>0 and(1-CL.Smoothing^(dt*60))or 1
-		cam.CFrame=cam.CFrame:Lerp(goal,alpha)
-	end)
-	return Aim
+	function Config.Save(name)Config.Slots[name]=capture()end
+	function Config.Load(name)local data=Config.Slots[name]if not data then return false end apply(data)return true end
+	function Config.Delete(name)Config.Slots[name]=nil end
+	function Config.Names()local names={}for name in pairs(Config.Slots)do table.insert(names,name)end table.sort(names)return names end
+	function Config.ResetAll()apply(Config.Defaults)end
+	return Config
 end)()
-_G.Tob2Aim=Aim
+_G.Tob2Config=Config
+if AUTOLOAD_CONFIG~=""then Config.Import(AUTOLOAD_CONFIG)end
+
+end) -- end of outer pcall
+if not _ok then showError(_err) end
