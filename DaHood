@@ -728,7 +728,7 @@ _G.Tob2loadstring=loadstring
 
 local _ls=loadstring
 local uiOk,uiErr=pcall(function()
-	_ls(game:HttpGet("https://raw.githubusercontent.com/Tob2Scripts/DaHoodTob2/main/DaHoodUi"))()
+	_ls(game:HttpGet("https://raw.githubusercontent.com/Tob2Scripts/DaHoodTob2/main/DaHoodUi.Lua"))()
 end)
 if not uiOk then showError("UI: "..tostring(uiErr)) end
 
